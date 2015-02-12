@@ -7,7 +7,7 @@ from app.auth.models import User, Application, Role
 import unittest
 
 
-class ApplicationTestCase(unittest.TestCase):
+class BasicTestCase(unittest.TestCase):
     username = "test@tests.com"
     password = "123456"
 
@@ -66,19 +66,8 @@ class ApplicationTestCase(unittest.TestCase):
 
         assert client.get('client_id', None)
 
-        token = self.login(client.get('client_id'))
-
-        print token
-
         assert token.get('access_token', None)
         assert token.get('refresh_token', None)
-
-
-    def test_provider(self):
-        """Test correct implementation of Auth provider"""
-        assert auth.validate_user_access(self.username, self.password)
-
-
 
 
 if __name__ == '__main__':
