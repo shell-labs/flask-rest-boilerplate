@@ -6,11 +6,12 @@ class AuthProvider(OAuth2Provider):
     def validate_client(self, client_id, grant_type=None):
         return Client.query.get(client_id) is not None
 
-    def validate_user_access(self, username, password):
-        return User.authenticate(username, password)
+    def from_user_credentials(self, client_id, username, password):
+        (user, authenticated) = User.authenticate(username, password)
+        if not authenticated:
+            return None
 
-    def from_username(self, client_id, username):
-        return User.query.filter_by(email=username).first()
+        return user
 
     def from_access_token(self, access_token):
         token = Token.query.filter_by(access_token=access_token).first()

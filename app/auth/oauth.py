@@ -18,10 +18,8 @@ class OAuth2Provider:
             # Return True or False
         validate_client_secret(self, client_id, client_secret)
             # Return True or False
-        validate_access(self)  # Use this to validate your app session user
-            # Return True or False
-        from_username(self, client_id, username)
-            # Return user data or none if invalid
+        from_user_credentials(self, client_id, username, password)
+            # Return user data or none if invalid or password invalid
         from_access_token(self, client_id, access_token)
             # Return mixed data or None on invalid
         from_refresh_token(self, client_id, from_refresh_token)
@@ -73,13 +71,9 @@ class OAuth2Provider:
         raise NotImplementedError('Subclasses must implement '
                                   'validate_client.')
 
-    def validate_user_access(self, username, password):
+    def from_user_credentials(self, client_id, username, password):
         raise NotImplementedError('Subclasses must implement '
-                                  'validate_user_access.')
-
-    def from_username(self, client_id, username):
-        raise NotImplementedError('Subclasses must implement '
-                                  'from_username.')
+                                  'from_user_credentials.')
 
     def from_access_token(self, access_token):
         raise NotImplementedError('Subclasses must implement '
@@ -121,11 +115,9 @@ class OAuth2Provider:
             password = kwargs.get('password')
 
             # Validate user access
-            if not self.validate_user_access(username, password):
+            data = self.from_user_credentials(client_id, username, password)
+            if data is None:
                 raise OAuth2Exception("invalid_grant")
-
-            # Get user
-            data = self.from_username(client_id, username)
 
             # Generate access tokens once all conditions have been met
             access_token = self.generate_access_token()
