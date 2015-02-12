@@ -1,5 +1,7 @@
+import os
 from datetime import datetime
 import calendar
+import uuid as _uuid
 
 
 def now(as_timestamp=False, in_millis=False):
@@ -14,3 +16,11 @@ def now(as_timestamp=False, in_millis=False):
             return timestamp * 1000
         return timestamp
     return time
+
+
+def secret(size=16):
+    return os.urandom(size).encode('hex')
+
+
+def uuid():
+    return str(_uuid.uuid4()).replace('-', '')

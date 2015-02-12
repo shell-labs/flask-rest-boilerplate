@@ -17,7 +17,7 @@ Usage
 
 * Clone the repo
 
-```git clone ...```
+```$ git clone https://github.com/niclabs/flask-rest-boilerplate.git```
 
 * Initialize the virtual environment
 

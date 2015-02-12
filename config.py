@@ -1,11 +1,16 @@
 class Config(object):
     DEBUG = False
     TESTING = False
-    SQLALCHEMY_DATABASE_URI = 'sqlite://:memory:'
+    SQLALCHEMY_DATABASE_URI = 'sqlite://'
+    TOKEN_EXPIRATION_TIME = 3600
 
     # Define the application directory
     import os
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+
+    # Log file (the directory must exist)
+    APPLICATION_LOG = os.path.join(BASE_DIR, 'log', 'application.log')
+    ACCESS_LOG = os.path.join(BASE_DIR, 'log', 'access.log')
 
 
 class ProductionConfig(Config):
@@ -19,6 +24,7 @@ class DevelopmentConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
+    DEBUG = True
 
 
 # Default configuration
