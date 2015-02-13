@@ -1,6 +1,6 @@
 from flask import request, jsonify, abort
 from app import app, api, auth as provider, db
-from models import Application, Client
+from models import Application, Client, Role
 
 from app.restful import BadRequest
 
@@ -14,6 +14,7 @@ class ClientResource:
         'client_secret': 'secret',
     }
 
+    @api.public
     def create(self):
         app_key = self.data.get('app_key', None)
         if not app_key:
@@ -28,6 +29,10 @@ class ClientResource:
         db.session.commit()
 
         return client
+
+    @api.grant(Role.ADMIN)
+    def list(self):
+        pass
 
 
 # Authorization Code

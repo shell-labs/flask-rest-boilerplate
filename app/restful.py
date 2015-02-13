@@ -1,5 +1,6 @@
 import types
 import re
+import functools
 
 from restless.fl import FlaskResource
 from restless.preparers import FieldsPreparer
@@ -24,6 +25,18 @@ class Resource(FlaskResource):
         if not self.auth:
             return True
 
+        # Get the method name for the endpoint and request method
+        method = self.http_methods.get(self.endpoint).get(self.request.method)
+
+        # If the callback has the attribute public, return true immediately
+        callback = getattr(self, method)
+        if hasattr(callback, 'public') and callback.public:
+            return True
+
+        roles = []
+        if hasattr(callback, 'roles'):
+            roles = callback.roles
+
         reg = re.compile('^Bearer *([^ ]+) *$')
 
         authorization = self.request.headers.get('Authorization')
@@ -41,6 +54,10 @@ class Resource(FlaskResource):
         if user is None:
             raise Unauthorized("invalid_client")
 
+        # Check user roles
+        if not self.auth.validate_user_roles(user, roles):
+            raise Unauthorized("invalid_client")
+
         self.user = user
 
         return True
@@ -56,6 +73,32 @@ class Api:
     def init_app(self, app, auth=None):
         self.app = app
         self.auth = auth
+
+    def public(self, view):
+        """Define the class method as public.
+
+        Otherwise, if auth is defined all methods require
+        the user to be authenticated
+        """
+        view.public = True
+        return view
+
+    def grant(self, roles=[]):
+        """Grant method authorization to the specified roles"""
+        def view(fn):
+            fn.roles = roles
+            return fn
+
+        return view
+
+    def grant(self, role):
+        """Grant authorization only to the users of the specified role"""
+        def view(fn):
+            fn.roles = [role]
+            return fn
+
+        return view
+
 
     def resource(self, prefix):
         """Decorator to simplify API creation.

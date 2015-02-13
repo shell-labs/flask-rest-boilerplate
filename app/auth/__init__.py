@@ -1,5 +1,5 @@
 from oauth import OAuth2Provider, OAuth2Exception
-from models import Client, User, Token
+from models import Client, User, Token, Role
 from app import db, app
 
 class AuthProvider(OAuth2Provider):
@@ -65,3 +65,11 @@ class AuthProvider(OAuth2Provider):
                       token_type=token_type)
         db.session.add(token)
         db.session.commit()
+
+    def validate_user_roles(self, user, roles=[]):
+        for role in roles:
+            r = Role.query.filter_by(role=role, user=user).first()
+            if not r:
+                return False
+
+        return True

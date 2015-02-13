@@ -20,7 +20,7 @@ auth = AuthProvider(app)
 
 # Api
 from restful import Api
-api = Api(app)
+api = Api(app, auth)
 
 # Configure logging
 import logging
