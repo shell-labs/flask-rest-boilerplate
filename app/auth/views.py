@@ -30,10 +30,6 @@ class ClientResource:
 
         return client
 
-    @api.grant(Role.ADMIN)
-    def list(self):
-        pass
-
 
 # Authorization Code
 # Returns a redirect header on success

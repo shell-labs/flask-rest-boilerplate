@@ -30,6 +30,7 @@ class Resource(FlaskResource):
 
         # If the callback has the attribute public, return true immediately
         callback = getattr(self, method)
+
         if hasattr(callback, 'public') and callback.public:
             return True
 
@@ -41,22 +42,24 @@ class Resource(FlaskResource):
 
         authorization = self.request.headers.get('Authorization')
         if not authorization:
-            raise BadRequest("invalid_request")
+            # TODO: return bad request or unauthorized here?
+            return False
 
         access_token = reg.findall(authorization)
         if not access_token:
-            raise Unauthorized("invalid_client")
+            # TODO: return bad request or unauthorized here?
+            return False
         access_token = access_token[0]
 
         # Get the user
         user = self.auth.from_access_token(access_token)
 
         if user is None:
-            raise Unauthorized("invalid_client")
+            return False
 
         # Check user roles
         if not self.auth.validate_user_roles(user, roles):
-            raise Unauthorized("invalid_client")
+            return False
 
         self.user = user
 
