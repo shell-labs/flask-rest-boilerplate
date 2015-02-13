@@ -6,12 +6,25 @@ class AuthProvider(OAuth2Provider):
     def validate_client(self, client_id, grant_type=None):
         return Client.query.get(client_id) is not None
 
-    def from_user_credentials(self, client_id, username, password):
-        (user, authenticated) = User.authenticate(username, password)
-        if not authenticated:
+    def from_client_id(self, client_id, token_type):
+        token = Token.query.filter_by(client_id=client_id, token_type=token_type)
+        if not token or token.expired:
             return None
 
-        return user
+        return dict(access_token=token.access_token, refresh_token=token.refresh_token,
+                    expires_in=token.expires_in)
+
+    def from_user_credentials(self, client_id, username, password, token_type):
+        (user, authenticated) = User.authenticate(username, password)
+        if not authenticated:
+            return None, None
+
+        token = Token.query.filter_by(client_id=client_id, user=user, token_type=token_type).first()
+        if not token or token.expired:
+            return user, None
+
+        return user, dict(access_token=token.access_token, token_type=token.token_type,
+                          refresh_token=token.refresh_token, expires_in=token.expires_in)
 
     def from_access_token(self, access_token):
         token = Token.query.filter_by(access_token=access_token).first()
@@ -47,6 +60,8 @@ class AuthProvider(OAuth2Provider):
             app.logger.error("Provided data %s is None or has no id property" % data)
             raise OAuth2Exception('invalid_request')
 
-        token = Token(client=client, user=data, access_token=access_token, expires_in=expires_in, refresh_token=refresh_token)
+        token = Token(client=client, user=data, access_token=access_token,
+                      expires_in=expires_in, refresh_token=refresh_token,
+                      token_type=token_type)
         db.session.add(token)
         db.session.commit()

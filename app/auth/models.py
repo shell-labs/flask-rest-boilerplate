@@ -5,7 +5,6 @@ from app.sql import ChoiceType, UUID
 from passlib.hash import sha256_crypt
 from datetime import timedelta
 
-
 class User(db.Model):
     __tablename__ = 'users'
 
@@ -107,13 +106,36 @@ class Token(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     client_id = db.Column(db.Integer, db.ForeignKey('clients.id'))
 
+    token_type = db.Column(db.String(20), nullable=False)
     access_token = db.Column(db.String(40), nullable=False, index=True)
     refresh_token = db.Column(db.String(40), nullable=False, index=True)
-    expires_in = db.Column(db.Integer, nullable=False, default=3600)
+    _expires_in = db.Column('expires_in', db.Integer, nullable=False)
 
     user = db.relationship('User')
     client = db.relationship('Client')
 
+    def __init__(self, expires_in=3600, **kwargs):
+        super(Token, self).__init__(**kwargs)
+        self.expires_in = expires_in
+
+    @property
+    def expires_in(self):
+        if self.created:
+            delta = (timedelta(seconds=self._expires_in) - (now() - self.created)).seconds
+            return delta if delta > 0 else 0
+
+        return self._expires_in
+
+    @expires_in.setter
+    def expires_in(self, value):
+        self._expires_in = value
+
+    @property
+    def expires(self):
+        if self.created:
+            return self.created + timedelta(seconds=self._expires_in)
+        return None
+
     @property
     def expired(self):
-        return now() > self.created + timedelta(seconds=self.expires_in)
+        return now() > self.created + timedelta(seconds=self._expires_in)

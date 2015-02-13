@@ -18,8 +18,10 @@ class OAuth2Provider:
             # Return True or False
         validate_client_secret(self, client_id, client_secret)
             # Return True or False
-        from_user_credentials(self, client_id, username, password)
-            # Return user data or none if invalid or password invalid
+        from_user_credentials(self, client_id, username, password, token_type)
+            # Return (user, token) where user data is None if authorization is invalid
+            and token is a dict containing an existing token or none if there is no
+            token for the client
         from_access_token(self, client_id, access_token)
             # Return mixed data or None on invalid
         from_refresh_token(self, client_id, from_refresh_token)
@@ -71,7 +73,11 @@ class OAuth2Provider:
         raise NotImplementedError('Subclasses must implement '
                                   'validate_client.')
 
-    def from_user_credentials(self, client_id, username, password):
+    def from_client_id(self, client_id, token_type):
+        raise NotImplementedError('Subclasses must implement '
+                                  'from_client_id.')
+
+    def from_user_credentials(self, client_id, username, password, token_type):
         raise NotImplementedError('Subclasses must implement '
                                   'from_user_credentials.')
 
@@ -115,7 +121,7 @@ class OAuth2Provider:
             password = kwargs.get('password')
 
             # Validate user access
-            data = self.from_user_credentials(client_id, username, password)
+            data, token = self.from_user_credentials(client_id, username, password, self.token_type)
             if data is None:
                 raise OAuth2Exception("invalid_grant")
 
@@ -125,8 +131,14 @@ class OAuth2Provider:
             expires_in = self.token_expires_in
             refresh_token = self.generate_refresh_token()
 
-            # Store credentials
-            self.persist_token_information(client_id, access_token,
+            if token:
+                access_token = token.get('access_token')
+                refresh_token = token.get('refresh_token')
+                expires_in = token.get('expires_in')
+                token_type = token.get('token_type')
+            else:
+                # Store credentials
+                self.persist_token_information(client_id, access_token,
                                            token_type, expires_in,
                                            refresh_token, data)
 

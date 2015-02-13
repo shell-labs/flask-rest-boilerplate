@@ -66,8 +66,16 @@ class BasicTestCase(unittest.TestCase):
 
         assert client.get('client_id', None)
 
+        token = self.login(client.get('client_id'))
+
         assert token.get('access_token', None)
         assert token.get('refresh_token', None)
+
+        # Check that the newly requested token has the same credentials
+        # as the old token
+        new_token = self.login(client.get('client_id'))
+        assert new_token.get('access_token') == token.get('access_token') and \
+            new_token.get('refresh_token') == token.get('refresh_token')
 
 
 if __name__ == '__main__':
