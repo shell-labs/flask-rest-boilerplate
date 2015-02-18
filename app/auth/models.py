@@ -1,48 +1,9 @@
 from app import db
+from app.user.models import User
 from app.util import now, secret, uuid
 from app.sql import ChoiceType, UUID
 
-from passlib.hash import sha256_crypt
 from datetime import timedelta
-
-class User(db.Model):
-    __tablename__ = 'users'
-
-    id = db.Column(db.Integer, primary_key=True)
-    created = db.Column(db.DateTime, default=now)
-    modified = db.Column(db.DateTime, default=now, onupdate=now)
-    email = db.Column(db.String(255), unique=True, index=True)
-
-    _password = db.Column('password', db.String(128), nullable=False)
-
-    def _get_password(self):
-        return self._password
-
-    def _set_password(self, password):
-        self._password = sha256_crypt.encrypt(password, rounds=12345)
-
-    # Hide password encryption by exposing password field only.
-    password = db.synonym('_password',
-                          descriptor=property(_get_password,
-                                              _set_password))
-
-    def __init__(self, email):
-        self.email = email
-
-    def check_password(self, password):
-        if self._password is None:
-            return False
-        return sha256_crypt.verify(password, self._password)
-
-    @classmethod
-    def authenticate(cls, login, password):
-        user = cls.query.filter(User.email==login).first()
-        authenticated = user.check_password(password) if user else False
-
-        return user, authenticated
-
-    def __repr__(self):
-        return '<User %r>' % (self.email)
 
 
 class Application(db.Model):
@@ -89,7 +50,7 @@ class Client(db.Model):
     created = db.Column(db.DateTime, default=now)
     modified = db.Column(db.DateTime, default=now, onupdate=now)
 
-    app_key = db.Column('app_id', db.Integer, db.ForeignKey('applications.id'))
+    app_key = db.Column('app_id', UUID, db.ForeignKey('applications.id'))
 
     secret = db.Column('secret', db.String(16), unique=True, default=secret)
 
@@ -104,12 +65,12 @@ class Token(db.Model):
     modified = db.Column(db.DateTime, default=now, onupdate=now)
 
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'))
+    client_id = db.Column(UUID, db.ForeignKey('clients.id'))
 
     token_type = db.Column(db.String(20), nullable=False)
     access_token = db.Column(db.String(40), nullable=False, index=True)
     refresh_token = db.Column(db.String(40), nullable=False, index=True)
-    _expires_in = db.Column('expires_in', db.Integer, nullable=False)
+    _expires_in = db.Column('expires_in', db.Integer, nullable=False    )
 
     user = db.relationship('User')
     client = db.relationship('Client')

@@ -66,6 +66,7 @@ def not_found(error):
 
 # Import modules
 from app.auth import views as auth_views
+from app.user import views as user_views
 
 # Build the database:
 # This will create the database file using SQLAlchemy
