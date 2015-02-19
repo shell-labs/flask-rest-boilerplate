@@ -96,12 +96,7 @@ class Api:
 
     def grant(self, role):
         """Grant authorization only to the users of the specified role"""
-        def view(fn):
-            fn.roles = [role]
-            return fn
-
-        return view
-
+        return self.grant([role])
 
     def resource(self, prefix):
         """Decorator to simplify API creation.

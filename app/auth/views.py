@@ -1,34 +1,10 @@
 from flask import request, jsonify, abort
 from app import app, api, auth as provider, db
-from models import Application, Client, Role
+from models import Application, Client
 
 from app.restful import BadRequest
 
 from oauth import OAuth2Exception
-
-
-@api.resource('/v1/client/')
-class ClientResource:
-    aliases = {
-        'client_id': 'id',
-        'client_secret': 'secret',
-    }
-
-    @api.public
-    def create(self):
-        app_key = self.data.get('app_key', None)
-        if not app_key:
-            raise BadRequest("Must provide a valid app_key to create a client")
-
-        app = Application.query.get(app_key)
-        if not app:
-            raise NotFound("Must provide a valid app_key to create a client")
-
-        client = Client(app_key=app_key)
-        db.session.add(client)
-        db.session.commit()
-
-        return client
 
 
 # Authorization Code

@@ -1,30 +1,22 @@
 from oauth import OAuth2Provider, OAuth2Exception
-from models import Client, User, Token, Role
+from app.user.models import User
+from models import Client, Token, Grant
 from app import db, app
 
 class AuthProvider(OAuth2Provider):
     def validate_client(self, client_id, grant_type=None):
         return Client.query.get(client_id) is not None
 
-    def from_client_id(self, client_id, token_type):
-        token = Token.query.filter_by(client_id=client_id, token_type=token_type)
-        if not token or token.expired:
-            return None
-
-        return dict(access_token=token.access_token, refresh_token=token.refresh_token,
-                    expires_in=token.expires_in)
-
     def from_user_credentials(self, client_id, username, password, token_type):
         (user, authenticated) = User.authenticate(username, password)
         if not authenticated:
-            return None, None
+            return None
 
         token = Token.query.filter_by(client_id=client_id, user=user, token_type=token_type).first()
         if not token or token.expired:
-            return user, None
+            return user
 
-        return user, dict(access_token=token.access_token, token_type=token.token_type,
-                          refresh_token=token.refresh_token, expires_in=token.expires_in)
+        return user
 
     def from_access_token(self, access_token):
         token = Token.query.filter_by(access_token=access_token).first()
@@ -68,8 +60,8 @@ class AuthProvider(OAuth2Provider):
 
     def validate_user_roles(self, user, roles=[]):
         for role in roles:
-            r = Role.query.filter_by(role=role, user=user).first()
-            if not r:
+            grant = Grant.query.filter_by(role=role, user=user).first()
+            if not grant:
                 return False
 
         return True

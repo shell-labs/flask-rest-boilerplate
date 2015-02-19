@@ -1,7 +1,9 @@
 import os
-from datetime import datetime, timedelta
 import calendar
 import uuid as _uuid
+
+from datetime import datetime, timedelta
+from collections import namedtuple
 
 
 def now(as_timestamp=False, in_millis=False):
@@ -24,3 +26,8 @@ def secret(size=16):
 
 def uuid():
     return str(_uuid.uuid4()).replace('-', '')
+
+
+def enum(*sequential, **kwargs):
+    """Define an iterable enum"""
+    return namedtuple('Enum', [v for l in [sequential, kwargs.keys()] for v in l], rename=True)(*[v for l in [range(len(sequential)), kwargs.values()] for v in l])

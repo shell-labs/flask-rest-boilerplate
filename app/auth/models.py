@@ -1,15 +1,16 @@
 from app import db
 from app.user.models import User
 from app.util import now, secret, uuid
-from app.sql import ChoiceType, UUID
+from app.sql import ChoiceType, StringListType, UUID
 
+from oauth import GRANT_TYPES
 from datetime import timedelta
 
 
 class Application(db.Model):
         __tablename__ = 'applications'
 
-        id = db.Column(UUID, primary_key=True, default=uuid)
+        id = db.Column(db.Integer, primary_key=True)
         created = db.Column(db.DateTime, default=now)
         modified = db.Column(db.DateTime, default=now, onupdate=now)
 
@@ -22,16 +23,16 @@ class Application(db.Model):
         owner = db.relationship('User')
 
 
-class Role(db.Model):
-    __tablename__ = 'roles'
+class Grant(db.Model):
+    __tablename__ = 'grants'
 
     ADMIN = u'Administrator'
-    CLIENT = u'Client'
-    OWNER = u'Application Owner'
+    USER = u'End User'
+    APP = u'Application Owner'
     ROLES = (
         (u'ADM', ADMIN),
-        (u'CLI', CLIENT),
-        (u'APP', OWNER),
+        (u'USR', USER),
+        (u'APP', APP),
     )
 
     id = db.Column(db.Integer, primary_key=True)
@@ -49,11 +50,13 @@ class Client(db.Model):
     id = db.Column(UUID, primary_key=True, default=uuid)
     created = db.Column(db.DateTime, default=now)
     modified = db.Column(db.DateTime, default=now, onupdate=now)
-
-    app_key = db.Column('app_id', UUID, db.ForeignKey('applications.id'))
-
     secret = db.Column('secret', db.String(16), unique=True, default=secret)
 
+    name = db.Column(db.String(64))
+    url = db.Column(db.String(256))
+
+    # Application
+    app_id = db.Column(db.Integer, db.ForeignKey('applications.id'))
     app = db.relationship('Application')
 
 
@@ -64,13 +67,13 @@ class Token(db.Model):
     created = db.Column(db.DateTime, default=now)
     modified = db.Column(db.DateTime, default=now, onupdate=now)
 
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    client_id = db.Column(UUID, db.ForeignKey('clients.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    client_id = db.Column(UUID, db.ForeignKey('clients.id'), nullable=False)
 
     token_type = db.Column(db.String(20), nullable=False)
     access_token = db.Column(db.String(40), nullable=False, index=True)
     refresh_token = db.Column(db.String(40), nullable=False, index=True)
-    _expires_in = db.Column('expires_in', db.Integer, nullable=False    )
+    _expires_in = db.Column('expires_in', db.Integer, nullable=False)
 
     user = db.relationship('User')
     client = db.relationship('Client')
@@ -81,6 +84,10 @@ class Token(db.Model):
 
     @property
     def expires_in(self):
+        """Return time to expiration, calculated by
+        substracting the elapsed time since the creation of the token
+        by the database value of exprires_in
+        """
         if self.created:
             delta = (timedelta(seconds=self._expires_in) - (now() - self.created)).seconds
             return delta if delta > 0 else 0
@@ -93,10 +100,14 @@ class Token(db.Model):
 
     @property
     def expires(self):
+        """Return the date of expiration according to the
+        creation date of the token, or None if there is
+        no creation date"""
         if self.created:
             return self.created + timedelta(seconds=self._expires_in)
         return None
 
     @property
     def expired(self):
+        """Return true if the token is expired"""
         return now() > self.created + timedelta(seconds=self._expires_in)
