@@ -72,7 +72,7 @@ class OAuth2Provider:
         """Generate a random refresh token."""
         return util.secret(self.token_length)
 
-    def validate_client(self, client_id, grant_type=None):
+    def validate_client(self, client_id, grant_type, client_secret=None):
         raise NotImplementedError('Subclasses must implement '
                                   'validate_client.')
 
@@ -111,9 +111,11 @@ class OAuth2Provider:
                 if not kwargs.get(x):
                     raise TypeError("Missing required param for grant type {0}: {1}".format(grant_type, x))
 
+            client_secret = kwargs.get('client_secret', None)
+
             # Validate the client credentials
             # TODO: this should validate that the client has permission to perform this grant request
-            if not self.validate_client(client_id, grant_type):
+            if not self.validate_client(client_id, grant_type, client_secret=client_secret):
                 raise OAuth2Exception("invalid_client")
 
             username = kwargs.get('username')

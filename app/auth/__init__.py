@@ -3,10 +3,11 @@ from app.user.models import User
 from models import Client, Token, Grant
 from app import db, app
 
+
 class AuthProvider(OAuth2Provider):
-    def validate_client(self, client_id, grant_type):
+    def validate_client(self, client_id, grant_type, client_secret=None):
         client = Client.query.get(client_id)
-        if client:
+        if client and (client_secret is None or client.secret == client_secret):
             return grant_type in client.allowed_grant_types
 
         return False
