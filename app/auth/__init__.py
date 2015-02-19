@@ -4,17 +4,17 @@ from models import Client, Token, Grant
 from app import db, app
 
 class AuthProvider(OAuth2Provider):
-    def validate_client(self, client_id, grant_type=None):
-        return Client.query.get(client_id) is not None
+    def validate_client(self, client_id, grant_type):
+        client = Client.query.get(client_id)
+        if client:
+            return grant_type in client.allowed_grant_types
 
-    def from_user_credentials(self, client_id, username, password, token_type):
+        return False
+
+    def from_user_credentials(self, client_id, username, password):
         (user, authenticated) = User.authenticate(username, password)
         if not authenticated:
             return None
-
-        token = Token.query.filter_by(client_id=client_id, user=user, token_type=token_type).first()
-        if not token or token.expired:
-            return user
 
         return user
 

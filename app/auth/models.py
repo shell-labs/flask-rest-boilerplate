@@ -3,7 +3,7 @@ from app.user.models import User
 from app.util import now, secret, uuid
 from app.sql import ChoiceType, StringListType, UUID
 
-from oauth import GRANT_TYPES
+from oauth import GrantTypes
 from datetime import timedelta
 
 
@@ -54,6 +54,9 @@ class Client(db.Model):
 
     name = db.Column(db.String(64))
     url = db.Column(db.String(256))
+
+    # The list of allowed grant types for this client
+    allowed_grant_types = db.Column(StringListType(GrantTypes), default=[GrantTypes.REFRESH_TOKEN])
 
     # Application
     app_id = db.Column(db.Integer, db.ForeignKey('applications.id'))

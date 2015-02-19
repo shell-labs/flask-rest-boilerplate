@@ -3,6 +3,7 @@ import os
 from flask import json
 from flask.ext.sqlalchemy import SQLAlchemy
 from app import app, db, auth
+from app.auth.oauth import GrantTypes
 from app.user.models import User
 from app.auth.models import Application, Grant, Client
 import unittest
@@ -31,7 +32,8 @@ class BasicTestCase(unittest.TestCase):
         db.session.add(app)
         db.session.add(Grant(user=user, role=Grant.APP))
 
-        client = Client(app=app, name="Mobile Client")
+        client = Client(app=app, name="Mobile Client",
+                        allowed_grant_types=[GrantTypes.PASSWORD, GrantTypes.REFRESH_TOKEN])
         db.session.add(client)
 
         db.session.commit()
@@ -39,7 +41,6 @@ class BasicTestCase(unittest.TestCase):
         self.user_id = user.id
         self.application_id = app.id
         self.client_id = client.id
-
 
     def tearDown(self):
         db.drop_all(bind=None)

@@ -5,9 +5,9 @@ from flask import request
 from app import util
 
 # Supported grant types
-GRANT_TYPES = util.enum(PASSWORD='password',
+GrantTypes = util.enum(PASSWORD='password',
                         REFRESH_TOKEN='refresh_token')
-GRANT_TYPES_DICT = GRANT_TYPES._asdict()
+GrantTypeChoices = GrantTypes._asdict()
 
 
 class OAuth2Provider:
@@ -76,7 +76,7 @@ class OAuth2Provider:
         raise NotImplementedError('Subclasses must implement '
                                   'validate_client.')
 
-    def from_user_credentials(self, client_id, username, password, token_type):
+    def from_user_credentials(self, client_id, username, password):
         raise NotImplementedError('Subclasses must implement '
                                   'from_user_credentials.')
 
@@ -120,7 +120,7 @@ class OAuth2Provider:
             password = kwargs.get('password')
 
             # Validate user access
-            data = self.from_user_credentials(client_id, username, password, self.token_type)
+            data = self.from_user_credentials(client_id, username, password)
             if data is None:
                 raise OAuth2Exception("invalid_grant")
 
