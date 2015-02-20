@@ -58,12 +58,12 @@ class UserResource:
 
     @api.grant(Grant.ADMIN, Grant.USER)
     def update(self, pk):
-        if not Grant.check_grant(self.user, Grant.ADMIN) and str(self.user.id) != pk:
-            raise Unauthorized('Only administrators and data owners can update user data')
-
         user = User.query.get(pk)
         if not user:
-            return None
+            raise NotFound("Cannot update non existing object")
+
+        if not Grant.check_grant(self.user, Grant.ADMIN) and self.user.id != user.id:
+            raise Unauthorized('Only administrators and data owners can update user data')
 
         # Can only update password
         user.password = self.data.get('password', user.password)
