@@ -2,8 +2,6 @@ from flask import request, jsonify, abort
 from app import app, api, auth as provider, db
 from models import Application, Client
 
-from app.restful import BadRequest
-
 from oauth import OAuth2Exception
 
 

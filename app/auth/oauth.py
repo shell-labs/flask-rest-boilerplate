@@ -26,7 +26,7 @@ class OAuth2Provider:
         from_user_credentials(self, client_id, username, password, token_type)
             # Return user data or None if authorization is invalid
         from_access_token(self, client_id, access_token)
-            # Return mixed data or None on invalid
+            # Return (<user data>, <client data>) or None on invalid
         from_refresh_token(self, client_id, from_refresh_token)
             # Return mixed data or None on invalid
         persist_token_information(self, client_id, scope, access_token,

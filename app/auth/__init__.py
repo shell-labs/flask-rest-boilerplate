@@ -22,9 +22,9 @@ class AuthProvider(OAuth2Provider):
     def from_access_token(self, access_token):
         token = Token.query.filter_by(access_token=access_token).first()
         if not token or token.expired:
-            return None
+            return (None, None)
 
-        return token.user
+        return (token.user, token.client)
 
     def from_refresh_token(self, client_id, refresh_token):
         token = Token.query.filter_by(client_id=client_id, refresh_token=refresh_token).first()
@@ -61,8 +61,7 @@ class AuthProvider(OAuth2Provider):
 
     def validate_user_roles(self, user, roles=[]):
         for role in roles:
-            grant = Grant.query.filter_by(role=role, user=user).first()
-            if not grant:
+            if not Grant.check_grant(user, role):
                 return False
 
         return True

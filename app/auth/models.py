@@ -39,9 +39,13 @@ class Grant(db.Model):
     created = db.Column(db.DateTime, default=now)
     modified = db.Column(db.DateTime, default=now, onupdate=now)
     role = db.Column(ChoiceType(ROLES), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
     user = db.relationship('User')
+
+    @classmethod
+    def check_grant(cls, user, role):
+        return cls.query.filter(Grant.user == user, Grant.role == role).first() is not None
 
 
 class Client(db.Model):

@@ -17,6 +17,7 @@ class Resource(FlaskResource):
         self.app = api.app
         self.auth = api.auth
         self.user = None
+        self.client = None
 
     def is_debug(self):
         return self.app.debug
@@ -52,7 +53,7 @@ class Resource(FlaskResource):
         access_token = access_token[0]
 
         # Get the user
-        user = self.auth.from_access_token(access_token)
+        user, client = self.auth.from_access_token(access_token)
 
         if user is None:
             return False
@@ -62,6 +63,7 @@ class Resource(FlaskResource):
             return False
 
         self.user = user
+        self.client = client
 
         return True
 
@@ -86,17 +88,13 @@ class Api:
         view.public = True
         return view
 
-    def grant(self, roles=[]):
+    def grant(self, *roles):
         """Grant method authorization to the specified roles"""
         def view(fn):
             fn.roles = roles
             return fn
 
         return view
-
-    def grant(self, role):
-        """Grant authorization only to the users of the specified role"""
-        return self.grant([role])
 
     def resource(self, prefix):
         """Decorator to simplify API creation.

@@ -14,6 +14,7 @@ except ImportError:
 
 class ChoiceType(types.TypeDecorator):
     impl = types.String
+    python_type = str
 
     def __init__(self, choices, **kw):
         self.choices = dict(choices)
