@@ -60,8 +60,12 @@ class AuthProvider(OAuth2Provider):
         db.session.commit()
 
     def validate_user_roles(self, user, roles=[]):
-        for role in roles:
-            if not Grant.check_grant(user, role):
-                return False
+        # There is no role restriction
+        if not roles:
+            return True
 
-        return True
+        for role in roles:
+            if Grant.check_grant(user, role):
+                return True
+
+        return False

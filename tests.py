@@ -90,6 +90,7 @@ class BasicTestCase(unittest.TestCase):
                           headers={"Authorization": "Bearer %s" % admin_token.get('access_token')})
 
 
+        assert rv.status_code == 200
         data = json.loads(rv.data)
         assert data.get('objects', None)
 
@@ -100,6 +101,37 @@ class BasicTestCase(unittest.TestCase):
 
         assert user_in_data
 
+    def test_user_detail(self):
+        token = self.login(self.client_id, self.username, self.password)
+        rv = self.app.get('/v1/user/%s/' % self.user_id, follow_redirects=True,
+                          headers={"Authorization": "Bearer %s" % token.get('access_token')})
+
+        assert rv.status_code == 200
+
+        data = json.loads(rv.data)
+        assert data.get('email', None) == self.username
+
+    def test_user_create(self):
+        token = self.login(self.client_id, self.admin_user, self.admin_pass)
+        rv = self.app.post('/v1/user/', follow_redirects=True,
+                           data=json.dumps(dict(email='email@test.com', password='abc')),
+                           headers={"Authorization": "Bearer %s" % token.get('access_token')})
+
+        assert rv.status_code == 201
+
+        data = json.loads(rv.data)
+        assert data.get('email', None) == 'email@test.com'
+
+    def test_user_update(self):
+        token = self.login(self.client_id, self.username, self.password)
+        rv = self.app.put('/v1/user/%s/' % self.user_id, follow_redirects=True,
+                          data=json.dumps(dict(password='abc')),
+                          headers={"Authorization": "Bearer %s" % token.get('access_token')})
+
+        assert rv.status_code == 202
+
+        data = json.loads(rv.data)
+        assert data.get('email', None) == self.username
 
 
 if __name__ == '__main__':

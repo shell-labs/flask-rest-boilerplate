@@ -14,19 +14,21 @@ class User(db.Model):
 
     _password = db.Column('password', db.String(128), nullable=False)
 
+    def __init__(self, password = None, **kwargs):
+        super(User, self).__init__(**kwargs)
+        self.password = password
+
     def _get_password(self):
         return self._password
 
     def _set_password(self, password):
-        self._password = sha256_crypt.encrypt(password, rounds=12345)
+        if password:
+            self._password = sha256_crypt.encrypt(password, rounds=12345)
 
     # Hide password encryption by exposing password field only.
     password = db.synonym('_password',
                           descriptor=property(_get_password,
                                               _set_password))
-
-    def __init__(self, email):
-        self.email = email
 
     def check_password(self, password):
         if self._password is None:

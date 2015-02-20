@@ -9,6 +9,7 @@ from restless.exceptions import BadRequest, NotFound, Unauthorized
 # Abstract the exceptions
 BadRequest = BadRequest
 NotFound = NotFound
+Unauthorized = Unauthorized
 
 
 class Resource(FlaskResource):
