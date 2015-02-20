@@ -2,6 +2,7 @@ from app import db
 from app.user.models import User
 from app.util import now, secret, uuid
 from app.sql import ChoiceType, StringListType, UUID
+from app.constants import Roles
 
 from oauth import GrantTypes
 from datetime import timedelta
@@ -26,19 +27,10 @@ class Application(db.Model):
 class Grant(db.Model):
     __tablename__ = 'grants'
 
-    ADMIN = u'Administrator'
-    USER = u'End User'
-    APP = u'Application Owner'
-    ROLES = (
-        (u'ADM', ADMIN),
-        (u'USR', USER),
-        (u'APP', APP),
-    )
-
     id = db.Column(db.Integer, primary_key=True)
     created = db.Column(db.DateTime, default=now)
     modified = db.Column(db.DateTime, default=now, onupdate=now)
-    role = db.Column(ChoiceType(ROLES), nullable=False)
+    role = db.Column(ChoiceType(Roles), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
     user = db.relationship('User')

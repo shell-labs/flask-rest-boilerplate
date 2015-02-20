@@ -50,7 +50,7 @@ class StringListType(types.TypeDecorator):
     python_type = list
 
     def __init__(self, allowed, separator=',', **kw):
-        self.allowed = list(allowed)
+        self.allowed = tuple(allowed)
         self.separator = separator
         super(StringListType, self).__init__(**kw)
 

@@ -6,6 +6,7 @@ from app import app, db, auth
 from app.auth.oauth import GrantTypes
 from app.user.models import User
 from app.auth.models import Application, Grant, Client
+from app.constants import Roles
 import unittest
 
 
@@ -28,18 +29,18 @@ class BasicTestCase(unittest.TestCase):
         user.password = self.password
         db.session.add(user)
 
-        db.session.add(Grant(user=user, role=Grant.USER))
+        db.session.add(Grant(user=user, role=Roles.USER))
 
         # Create admin
         admin = User(email=self.admin_user)
         admin.password = self.admin_pass
         db.session.add(admin)
 
-        db.session.add(Grant(user=admin, role=Grant.ADMIN))
+        db.session.add(Grant(user=admin, role=Roles.ADMIN))
 
         app = Application(owner=user, name="Test App")
         db.session.add(app)
-        db.session.add(Grant(user=user, role=Grant.APP))
+        db.session.add(Grant(user=user, role=Roles.APP))
 
         client = Client(app=app, name="Mobile Client",
                         allowed_grant_types=[GrantTypes.PASSWORD, GrantTypes.REFRESH_TOKEN])

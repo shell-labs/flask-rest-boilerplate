@@ -7,8 +7,6 @@ from app import util
 # Supported grant types
 GrantTypes = util.enum(PASSWORD='password',
                         REFRESH_TOKEN='refresh_token')
-GrantTypeChoices = GrantTypes._asdict()
-
 
 class OAuth2Provider:
     """OAuth 2.0 authorization provider. This class manages authorization
