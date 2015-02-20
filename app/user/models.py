@@ -1,5 +1,7 @@
 from app import db
-from app.util import now
+from app.util import now, enum
+from app.sql import ChoiceType
+from app.constants import Genders
 
 from passlib.hash import sha256_crypt
 
@@ -44,3 +46,20 @@ class User(db.Model):
 
     def __repr__(self):
         return '<User %r>' % (self.email)
+
+
+class UserDetails(db.Model):
+    __tablename__ = 'user_details'
+
+    id = db.Column(db.Integer, primary_key=True)
+    created = db.Column(db.DateTime, default=now)
+    modified = db.Column(db.DateTime, default=now, onupdate=now)
+
+    name = db.Column(db.String(100), unique=True, index=True)
+    url = db.Column(db.String)
+    bio = db.Column(db.String)
+    born = db.Column(db.DateTime)
+    gender = db.Column(ChoiceType(Genders))
+
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user = db.relationship('User')
