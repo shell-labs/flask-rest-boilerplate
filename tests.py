@@ -21,6 +21,9 @@ class BasicTestCase(unittest.TestCase):
         self.app = app.test_client()
         db.create_all()
 
+        # Initialize the request context
+        app.test_request_context().push()
+
         self.setUpInitialData()
 
     def setUpInitialData(self):
@@ -64,6 +67,8 @@ class BasicTestCase(unittest.TestCase):
             grant_type='password'
         )), follow_redirects=True, content_type='application/json')
 
+        assert rv.status_code == 200
+
         return json.loads(rv.data)
 
     def test_login(self):
@@ -80,6 +85,8 @@ class BasicTestCase(unittest.TestCase):
 
     def test_list_users(self):
         token = self.login(self.client_id, self.username, self.password)
+        assert token.get('access_token', None)
+
         rv = self.app.get('/v1/user/', follow_redirects=True,
                           headers={"Authorization": "Bearer %s" % token.get('access_token')})
 
@@ -104,6 +111,8 @@ class BasicTestCase(unittest.TestCase):
 
     def test_user_detail(self):
         token = self.login(self.client_id, self.username, self.password)
+        assert token.get('access_token', None)
+
         rv = self.app.get('/v1/user/%s/' % self.user_id, follow_redirects=True,
                           headers={"Authorization": "Bearer %s" % token.get('access_token')})
 
@@ -114,6 +123,8 @@ class BasicTestCase(unittest.TestCase):
 
     def test_user_create(self):
         token = self.login(self.client_id, self.admin_user, self.admin_pass)
+        assert token.get('access_token', None)
+
         rv = self.app.post('/v1/user/', follow_redirects=True,
                            data=json.dumps(dict(email='email@test.com', password='abc')),
                            headers={"Authorization": "Bearer %s" % token.get('access_token')})
@@ -125,6 +136,8 @@ class BasicTestCase(unittest.TestCase):
 
     def test_user_update(self):
         token = self.login(self.client_id, self.username, self.password)
+        assert token.get('access_token', None)
+
         rv = self.app.put('/v1/user/%s/' % self.user_id, follow_redirects=True,
                           data=json.dumps(dict(password='abc')),
                           headers={"Authorization": "Bearer %s" % token.get('access_token')})
