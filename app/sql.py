@@ -21,10 +21,16 @@ class ChoiceType(types.TypeDecorator):
         super(ChoiceType, self).__init__(**kw)
 
     def process_bind_param(self, value, dialect):
-        return [k for k, v in self.choices.iteritems() if v == value][0]
+        chosen = [k for k, v in self.choices.iteritems() if v == value]
+        if len(chosen) > 0:
+            return chosen[0]
+
+        return None
 
     def process_result_value(self, value, dialect):
-        return self.choices[value]
+        if value:
+            return self.choices[value]
+        return None
 
 
 class StringListType(types.TypeDecorator):
