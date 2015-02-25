@@ -23,6 +23,9 @@ class Resource(FlaskResource):
     def is_debug(self):
         return self.app.debug
 
+    def bubble_exceptions(self):
+        return self.app.config.get('TESTING')
+
     def is_authenticated(self):
         if not self.auth:
             return True
