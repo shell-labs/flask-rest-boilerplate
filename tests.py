@@ -4,7 +4,7 @@ from flask import json
 from flask.ext.sqlalchemy import SQLAlchemy
 from app import app, db, auth
 from app.auth.oauth import GrantTypes
-from app.user.models import User
+from app.user.models import User, UserDetails
 from app.auth.models import Application, Grant, Client
 from app.restful import Unauthorized
 from app.constants import Roles
@@ -31,6 +31,7 @@ class BasicTestCase(unittest.TestCase):
         # Create the default user
         user = User(email=self.username)
         user.password = self.password
+        user.details = UserDetails(name="Test User", user=user)
         db.session.add(user)
 
         db.session.add(Grant(user=user, role=Roles.USER))
@@ -38,6 +39,7 @@ class BasicTestCase(unittest.TestCase):
         # Create admin
         admin = User(email=self.admin_user)
         admin.password = self.admin_pass
+        admin.details = UserDetails(name="Test Admin", user=admin)
         db.session.add(admin)
 
         db.session.add(Grant(user=admin, role=Roles.ADMIN))
@@ -129,7 +131,7 @@ class BasicTestCase(unittest.TestCase):
         assert token.get('access_token', None)
 
         rv = self.app.post('/v1/user/', follow_redirects=True,
-                           data=json.dumps(dict(email='email@test.com', password='abc')),
+                           data=json.dumps(dict(email='email@test.com', password='abc', name='Created user', gender='Male')),
                            headers={"Authorization": "Bearer %s" % token.get('access_token')})
 
         assert rv.status_code == 201
@@ -149,7 +151,6 @@ class BasicTestCase(unittest.TestCase):
 
         data = json.loads(rv.data)
         assert data.get('email', None) == self.username
-
 
 if __name__ == '__main__':
     unittest.main()

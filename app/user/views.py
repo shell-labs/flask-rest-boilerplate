@@ -1,9 +1,9 @@
-from models import User
+from models import User, UserDetails
 from app.auth.models import Grant
 
 from app import api, db
 from app.restful import Unauthorized, BadRequest, NotFound
-from app.constants import Roles
+from app.constants import Roles, Genders
 
 
 @api.resource('/v1/user/')
@@ -11,8 +11,13 @@ class UserResource:
     aliases = {
         'id': 'username',
         'created': 'created',
-        'modified': 'modified',
-        'email': 'email'
+        'modified': 'details.modified',
+        'email': 'email',
+        'name': 'details.name',
+        'url': 'details.url',
+        'bio': 'details.bio',
+        'born': 'details.born',
+        'gender': 'details.gender',
     }
 
     @api.grant(Roles.ADMIN)
@@ -42,6 +47,20 @@ class UserResource:
             email=self.data.get('email'),
             password=self.data.get('password')
         )
+
+        # Always create details
+        gender = self.data.get('gender', None)
+        if gender and gender not in Genders:
+            raise BadRequest(("Gender must be one of (" + ','.join(["'%s'"] * len(Genders)) + ")") % tuple(Genders))
+
+        user.details = UserDetails(
+            name=self.data.get('name', None),
+            url=self.data.get('url', None),
+            bio=self.data.get('bio', None),
+            born=self.data.get('born', None),
+            gender=gender,
+            user=user
+        )
         db.session.add(user)
 
         # Create user role. The default is Grant.USER
@@ -68,6 +87,18 @@ class UserResource:
 
         # Can only update password
         user.password = self.data.get('password', user.password)
+
+        gender = self.data.get('gender', user.details.gender)
+        if gender and gender not in Genders:
+            raise BadRequest(("Gender must be one of (" + ','.join(["'%s'"] * len(Genders)) + ")") % tuple(Genders))
+
+        # Update user details
+        user.details.name = self.data.get('name', user.details.name)
+        user.details.url = self.data.get('url', user.details.url)
+        user.details.bio = self.data.get('bio', user.details.url)
+        user.details.born = self.data.get('born', user.details.born)
+        user.details.gender = gender
+        db.session.add(user.details)
 
         db.session.add(user)
         db.session.commit()
