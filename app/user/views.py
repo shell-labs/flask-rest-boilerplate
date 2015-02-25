@@ -9,7 +9,7 @@ from app.constants import Roles
 @api.resource('/v1/user/')
 class UserResource:
     aliases = {
-        'id': 'id',
+        'id': 'username',
         'created': 'created',
         'modified': 'modified',
         'email': 'email'
@@ -24,9 +24,9 @@ class UserResource:
     @api.grant(Roles.ADMIN, Roles.USER)
     def detail(self, pk):
         if Grant.check_grant(self.user, Roles.ADMIN):
-            return User.query.get(pk)
+            return User.query.filter(User.username == pk).first()
 
-        if str(self.user.id) == pk:
+        if self.user.username == pk:
             return self.user
 
         raise Unauthorized('Only admins and data owners can view user data')
@@ -59,7 +59,7 @@ class UserResource:
 
     @api.grant(Roles.ADMIN, Roles.USER)
     def update(self, pk):
-        user = User.query.get(pk)
+        user = User.query.filter(User.username == pk).first()
         if not user:
             raise NotFound("Cannot update non existing object")
 

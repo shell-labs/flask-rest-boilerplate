@@ -51,7 +51,7 @@ class BasicTestCase(unittest.TestCase):
 
         db.session.commit()
 
-        self.user_id = user.id
+        self.user_id = user.username
         self.admin_id = admin.id
         self.application_id = app.id
         self.client_id = client.id
@@ -97,8 +97,8 @@ class BasicTestCase(unittest.TestCase):
         rv = self.app.get('/v1/user/', follow_redirects=True,
                           headers={"Authorization": "Bearer %s" % admin_token.get('access_token')})
 
-
         assert rv.status_code == 200
+
         data = json.loads(rv.data)
         assert data.get('objects', None)
 
