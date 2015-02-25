@@ -125,12 +125,17 @@ class Api:
             cls = type(cls.__name__, (Resource,), dict(cls.__dict__))
 
             aliases = getattr(cls, 'aliases', None)
-            if type(aliases) is types.DictType and len(aliases) > 0:
+            if isinstance(aliases, dict) and len(aliases) > 0:
                 cls.preparer = FieldsPreparer(fields=aliases)
 
-            this = self
+            # Rename self for using inside __init__
+            api = self
+
             def __init__(self, *args, **kwargs):
-                super(cls, self).__init__(this)
+                # Call Resource constructor
+                super(cls, self).__init__(api)
+
+                # Initialize the instance
                 clsinit(self, *args, **kwargs)
 
             cls.__init__ = __init__
