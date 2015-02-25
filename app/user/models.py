@@ -1,5 +1,5 @@
 from app import db
-from app.util import now, enum
+from app.util import now, enum, uuid
 from app.sql import ChoiceType
 from app.constants import Genders
 
@@ -14,9 +14,10 @@ class User(db.Model):
     modified = db.Column(db.DateTime, default=now, onupdate=now)
     email = db.Column(db.String(255), unique=True, index=True)
 
+    username = db.Column(db.String(32), default=uuid, nullable=False, index=True)
     _password = db.Column('password', db.String(128), nullable=False)
 
-    def __init__(self, password = None, **kwargs):
+    def __init__(self, password=None, **kwargs):
         super(User, self).__init__(**kwargs)
         self.password = password
 
@@ -39,7 +40,7 @@ class User(db.Model):
 
     @classmethod
     def authenticate(cls, login, password):
-        user = cls.query.filter(User.email==login).first()
+        user = cls.query.filter(db.or_(User.email == login, User.username == login)).first()
         authenticated = user.check_password(password) if user else False
 
         return user, authenticated
