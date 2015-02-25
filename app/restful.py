@@ -26,6 +26,19 @@ class Resource(FlaskResource):
     def bubble_exceptions(self):
         return self.app.config.get('TESTING')
 
+    def prepare(self, data):
+        # ``data`` is the object/dict to be exposed.
+        # We'll call ``super`` to prep the data, then we'll mask the email.
+        prepped = super(Resource, self).prepare(data)
+
+        # Remove empty values from response
+        not_null_data = dict()
+        for k, v in prepped.iteritems():
+            if v:
+                not_null_data[k] = v
+
+        return not_null_data
+
     def is_authenticated(self):
         if not self.auth:
             return True
