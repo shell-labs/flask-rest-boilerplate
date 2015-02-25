@@ -6,6 +6,7 @@ from app import app, db, auth
 from app.auth.oauth import GrantTypes
 from app.user.models import User
 from app.auth.models import Application, Grant, Client
+from app.restful import Unauthorized
 from app.constants import Roles
 import unittest
 
@@ -87,11 +88,13 @@ class BasicTestCase(unittest.TestCase):
         token = self.login(self.client_id, self.username, self.password)
         assert token.get('access_token', None)
 
-        rv = self.app.get('/v1/user/', follow_redirects=True,
-                          headers={"Authorization": "Bearer %s" % token.get('access_token')})
-
-        # Non admin users cannot get the user list
-        assert rv.status_code == 401
+        try:
+            rv = self.app.get('/v1/user/', follow_redirects=True,
+                              headers={"Authorization": "Bearer %s" % token.get('access_token')})
+            assert False
+        except Unauthorized:
+            # Non admin users cannot get the user list
+            assert True
 
         admin_token = self.login(self.client_id, self.admin_user, self.admin_pass)
         rv = self.app.get('/v1/user/', follow_redirects=True,
