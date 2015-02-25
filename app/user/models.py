@@ -21,6 +21,10 @@ class User(db.Model):
         super(User, self).__init__(**kwargs)
         self.password = password
 
+        if 'details' not in kwargs:
+            # By default create empty details for the user
+            self.details = UserDetails(user=self)
+
     def _get_password(self):
         return self._password
 
@@ -56,11 +60,11 @@ class UserDetails(db.Model):
     created = db.Column(db.DateTime, default=now)
     modified = db.Column(db.DateTime, default=now, onupdate=now)
 
-    name = db.Column(db.String(100), unique=True, index=True)
+    name = db.Column(db.String(100))
     url = db.Column(db.String)
     bio = db.Column(db.String)
     born = db.Column(db.DateTime)
     gender = db.Column(ChoiceType(Genders))
 
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    user = db.relationship('User')
+    user = db.relationship('User', backref=db.backref('details', lazy='joined', uselist=False))
