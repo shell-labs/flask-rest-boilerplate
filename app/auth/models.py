@@ -85,7 +85,7 @@ class Token(db.Model):
     def expires_in(self):
         """Return time to expiration, calculated by
         substracting the elapsed time since the creation of the token
-        by the database value of exprires_in
+        by the database value of expires_in
         """
         if self.created:
             delta = (timedelta(seconds=self._expires_in) - (now() - self.created)).seconds
