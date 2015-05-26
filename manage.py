@@ -9,6 +9,12 @@ manager.add_command('db', MigrateCommand)
 
 
 @MigrateCommand.command
+def create():
+    "Initialize the database"
+    db.create_all()
+
+
+@MigrateCommand.command
 def populate(sample_data=False):
     "Populate database with default data"
     pass
