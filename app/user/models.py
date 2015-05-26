@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from __future__ import unicode_literals
 from app import db
 from app.util import now, enum, uuid
 from app.sql import ChoiceType

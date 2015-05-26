@@ -1,8 +1,11 @@
+from __future__ import absolute_import
+from __future__ import unicode_literals
 from flask import request, jsonify, abort
 from app import app, api, auth as provider, db
-from models import Application, Client
+from .models import Application, Client
 
-from oauth import OAuth2Exception
+from .oauth import OAuth2Exception
+import six
 
 
 # Authorization Code
@@ -19,7 +22,7 @@ def authorization_code():
 @app.route("/v1/oauth2/token", methods=["POST"])
 def token():
     # Get a dict of POSTed form data
-    data = {k: d[k] for d in [request.json, request.form] for k in d.iterkeys()}
+    data = {k: d[k] for d in [request.json, request.form] for k in six.iterkeys(d)}
 
     # This is the important line
     credentials = provider.get_token_from_post_data(data)

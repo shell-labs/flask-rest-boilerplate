@@ -1,6 +1,9 @@
+from __future__ import absolute_import
+from __future__ import unicode_literals
 import sqlalchemy.dialects.postgresql
 import uuid
 import sqlalchemy.types as types
+import six
 
 try:
     # Check if the psycopg2 module exists
@@ -21,7 +24,7 @@ class ChoiceType(types.TypeDecorator):
         super(ChoiceType, self).__init__(**kw)
 
     def process_bind_param(self, value, dialect):
-        chosen = [k for k, v in self.choices.iteritems() if v == value]
+        chosen = [k for k, v in six.iteritems(self.choices) if v == value]
         if len(chosen) > 0:
             return chosen[0]
 

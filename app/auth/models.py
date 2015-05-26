@@ -1,10 +1,12 @@
+from __future__ import absolute_import
+from __future__ import unicode_literals
 from app import db
 from app.user.models import User
 from app.util import now, secret, uuid
 from app.sql import ChoiceType, StringListType, UUID
 from app.constants import Roles
 
-from oauth import GrantTypes
+from .oauth import GrantTypes
 from datetime import timedelta
 
 

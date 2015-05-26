@@ -1,9 +1,15 @@
+from __future__ import absolute_import
+from __future__ import unicode_literals
 import os
 import calendar
 import uuid as _uuid
+import binascii
 
 from datetime import datetime, timedelta
 from collections import OrderedDict
+from six.moves import map
+from six.moves import range
+from six.moves import zip
 
 
 def now(as_timestamp=False, in_millis=False):
@@ -21,7 +27,7 @@ def now(as_timestamp=False, in_millis=False):
 
 
 def secret(size=16):
-    return os.urandom(size).encode('hex')
+    return str(binascii.hexlify(os.urandom(size // 2)))
 
 
 def uuid():
@@ -70,13 +76,13 @@ class NamedTuple(tuple):
 
     def _asdict(self):
         'Return a new OrderedDict which maps field names to their values'
-        return OrderedDict(zip(self._fields, self))
+        return OrderedDict(list(zip(self._fields, self)))
 
     __dict__ = property(_asdict)
 
     def _replace(_self, **kwds):
         'Return a new Bar object replacing specified fields with new values'
-        result = _self._make(map(kwds.pop, _self._fields, _self))
+        result = _self._make(list(map(kwds.pop, _self._fields, _self)))
         if kwds:
             raise ValueError('Got unexpected field names: %r' % list(kwds))
         return result
@@ -95,7 +101,7 @@ class NamedTuple(tuple):
         except ValueError:
             raise AttributeError("'{}' NamedTuple has no attribute '{}'".format(self.__class__.__name__, field))
 
-        for i, v in zip(range(len(self)), self):
+        for i, v in zip(list(range(len(self))), self):
             if i == idx:
                 return v
 
@@ -105,7 +111,7 @@ class NamedTuple(tuple):
         except ValueError:
             raise AttributeError("'{}' NamedTuple has no attribute '{}'".format(self.__class__.__name__, key))
 
-        for i, v in zip(range(len(self)), self):
+        for i, v in zip(list(range(len(self))), self):
             if i == idx:
                 return v
 
@@ -117,6 +123,6 @@ def enum(*sequential, **kwargs):
     """Define an iterable enum"""
     class Enum(NamedTuple):
         __slots__ = ()
-        _fields = tuple(v for l in [sequential, kwargs.keys()] for v in l)
+        _fields = tuple(v for l in [sequential, list(kwargs.keys())] for v in l)
 
-    return Enum(*[v for l in [range(len(sequential)), kwargs.values()] for v in l])
+    return Enum(*[v for l in [list(range(len(sequential))), list(kwargs.values())] for v in l])
