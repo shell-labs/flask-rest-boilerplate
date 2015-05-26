@@ -9,6 +9,7 @@ __pycache__/
 .Python
 env/
 venv/
+venv3/
 build/
 develop-eggs/
 dist/
@@ -58,3 +59,4 @@ target/
 
 # Others
 .DS_Store
+*.bak
