@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from __future__ import unicode_literals
 import types
 import re
 import functools
@@ -5,6 +7,7 @@ import functools
 from restless.fl import FlaskResource
 from restless.preparers import FieldsPreparer
 from restless.exceptions import BadRequest, NotFound, Unauthorized
+import six
 
 # Abstract the exceptions
 BadRequest = BadRequest
@@ -33,7 +36,7 @@ class Resource(FlaskResource):
 
         # Remove empty values from response
         not_null_data = dict()
-        for k, v in prepped.iteritems():
+        for k, v in six.iteritems(prepped):
             if v:
                 not_null_data[k] = v
 

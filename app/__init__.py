@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from __future__ import unicode_literals
 # Import flask and template operators
 from flask import Flask, render_template, request
 
@@ -15,11 +17,11 @@ app.config.from_object('config.default')
 db = SQLAlchemy(app)
 
 # Authentication
-from auth import AuthProvider
+from .auth import AuthProvider
 auth = AuthProvider(app)
 
 # Api
-from restful import Api
+from .restful import Api
 api = Api(app, auth)
 
 # Configure logging
@@ -55,7 +57,7 @@ if app.config.get('ACCESS_LOG', None):
                     request.remote_addr,
                     request.method,
                     request.url,
-                    request.data])
+                    str(request.data)])
                 )
 
 

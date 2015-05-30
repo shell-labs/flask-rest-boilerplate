@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from __future__ import unicode_literals
 import logging
 import re
 
@@ -197,7 +199,7 @@ class OAuth2Provider:
         except TypeError as e:
             self.logger.exception(e)
             raise OAuth2Exception('invalid_request')
-        except StandardError as e:
+        except Exception as e:
             self.logger.exception(e)
             raise OAuth2Exception('server_error')
 

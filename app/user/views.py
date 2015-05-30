@@ -1,4 +1,6 @@
-from models import User, UserDetails
+from __future__ import absolute_import
+from __future__ import unicode_literals
+from .models import User, UserDetails
 from app.auth.models import Grant
 
 from app import api, db
