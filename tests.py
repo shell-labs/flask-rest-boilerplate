@@ -8,9 +8,12 @@ from app import app, db, auth
 from app.auth.oauth import GrantTypes
 from app.user.models import User, UserDetails
 from app.auth.models import Application, Grant, Client
-from app.restful import Unauthorized
+from app.etag.models import Etag
+from app.restful import Unauthorized, PreconditionFailed, PreconditionRequired
 from app.constants import Roles
 import unittest
+
+from passlib.hash import sha256_crypt
 
 
 class BasicTestCase(unittest.TestCase):
@@ -55,11 +58,15 @@ class BasicTestCase(unittest.TestCase):
         db.session.add(client)
 
         db.session.commit()
+        etag = Etag(pk=user.username, etag=Etag.create_etag(str(user.id)))
+        db.session.add(etag)
+        db.session.commit()
 
         self.user_id = user.username
         self.admin_id = admin.id
         self.application_id = app.id
         self.client_id = client.id
+        self.user_etag = etag.etag
 
     def tearDown(self):
         db.drop_all(bind=None)
@@ -73,7 +80,6 @@ class BasicTestCase(unittest.TestCase):
         )), follow_redirects=True, content_type='application/json')
 
         assert rv.status_code == 200
-
         return json.loads(rv.data)
 
     def test_login(self):
@@ -128,6 +134,19 @@ class BasicTestCase(unittest.TestCase):
         data = json.loads(rv.data)
         assert data.get('email', None) == self.username
 
+        rv = self.app.get('/v1/user/%s/' % self.user_id, follow_redirects=True,
+                          headers={"Authorization": "Bearer %s" % token.get('access_token'),
+                                   "If-None-Match": "%s" % "bad_etag"})
+
+        assert rv.status_code == 200
+
+        new_etag = rv.headers['ETag']
+
+        rv = self.app.get('/v1/user/%s/' % self.user_id, follow_redirects=True,
+                          headers={"Authorization": "Bearer %s" % token.get('access_token'),
+                                   "If-None-Match": "%s" % new_etag})
+        assert rv.status_code == 304
+
     def test_user_create(self):
         token = self.login(self.client_id, self.admin_user, self.admin_pass)
         assert token.get('access_token', None)
@@ -145,9 +164,29 @@ class BasicTestCase(unittest.TestCase):
         token = self.login(self.client_id, self.username, self.password)
         assert token.get('access_token', None)
 
+        try:
+            rv = self.app.put('/v1/user/%s/' % self.user_id, follow_redirects=True,
+                              data=json.dumps(dict(password='abc')),
+                              headers={"Authorization": "Bearer %s" % token.get('access_token')})
+            assert False
+        except PreconditionRequired:
+            # In every put request must be a if match header
+            assert True
+
+        try:
+            rv = self.app.put('/v1/user/%s/' % self.user_id, follow_redirects=True,
+                              data=json.dumps(dict(password='abc')),
+                              headers={"Authorization": "Bearer %s" % token.get('access_token'),
+                                       "If-Match": "%s" % "bad_etag"})
+            assert False
+        except PreconditionFailed:
+            # If the etags don't match, then the update cannot be executed
+            assert True
+
         rv = self.app.put('/v1/user/%s/' % self.user_id, follow_redirects=True,
                           data=json.dumps(dict(password='abc')),
-                          headers={"Authorization": "Bearer %s" % token.get('access_token')})
+                          headers={"Authorization": "Bearer %s" % token.get('access_token'),
+                                   "If-Match": "%s" % self.user_etag})
 
         assert rv.status_code == 202
 
