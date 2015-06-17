@@ -4,15 +4,23 @@ import types
 import re
 import functools
 
+from flask import make_response, json
 from restless.fl import FlaskResource
 from restless.preparers import FieldsPreparer
 from restless.exceptions import BadRequest, NotFound, Unauthorized
+from .http_errors import PreconditionFailed, PreconditionRequired
+from .constants import NOT_MODIFIED
 import six
+
+from .etag.models import Etag
+from app import db
 
 # Abstract the exceptions
 BadRequest = BadRequest
 NotFound = NotFound
 Unauthorized = Unauthorized
+PreconditionRequired = PreconditionRequired
+PreconditionFailed = PreconditionFailed
 
 
 class Resource(FlaskResource):
@@ -86,6 +94,45 @@ class Resource(FlaskResource):
         self.client = client
 
         return True
+
+    def handle(self, endpoint, *args, **kwargs):
+        '''
+        Overrides method handle of restless to handle etags.
+        For now only handles etag for conditional gets (http://fideloper.com/api-etag-conditional-get)
+        (with strong etags) and concurrency control (http://fideloper.com/etags-and-optimistic-concurrency-control).
+        Based on http://flask.pocoo.org/snippets/95/.
+        '''
+        if endpoint == 'detail':
+            local_etag = Etag.query.filter(Etag.pk == kwargs['pk']).first().etag
+            if self.request.method in ('PUT', 'DELETE'):
+                # for put and delete methods, it must have an if if_match header
+                if not self.request.if_match:
+                    raise PreconditionRequired
+                # and it must be the same one stored
+                if local_etag not in self.request.if_match:
+                    raise PreconditionFailed
+            elif self.request.method == 'GET' and self.request.if_none_match and \
+                    local_etag in self.request.if_none_match:
+                # if the method is get, if it have a header if_none_match end the etag is the same one stored,
+                # do nothing and return the same etag
+                response = make_response()
+                response.status_code = NOT_MODIFIED
+                response.set_etag(local_etag)
+                return response
+        response = super(Resource, self).handle(endpoint, *args, **kwargs)
+        # at the end of the request, create or update the etag if necessary, and add it to the headers
+        if self.request.method == 'POST':
+            data = json.loads(response.data)
+            etag = Etag(pk=data['id'], etag=Etag.create_etag(response.data))
+            db.session.add(etag)
+            response.set_etag(etag.etag)
+        elif self.request.method == 'PUT':
+            etag = Etag.query.filter(Etag.pk == kwargs['pk']).first()
+            etag.etag = Etag.create_etag(response.data)
+            db.session.add(etag)
+        if 'pk' in kwargs.keys():
+            response.set_etag(Etag.query.filter(Etag.pk == kwargs['pk']).first().etag)
+        return response
 
 
 class Api:
