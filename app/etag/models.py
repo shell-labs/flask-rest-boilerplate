@@ -16,8 +16,5 @@ class Etag(db.Model):
         self.etag = etag
 
     @staticmethod
-    def create_etag(*args):
-        encrypt_string = ''
-        for arg in args:
-            encrypt_string += str(arg)
-        return sha256_crypt.encrypt(encrypt_string)
+    def create_etag(data):
+        return sha256_crypt.encrypt(data)
