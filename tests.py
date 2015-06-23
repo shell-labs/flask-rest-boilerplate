@@ -13,8 +13,6 @@ from app.restful import Unauthorized, PreconditionFailed, PreconditionRequired
 from app.constants import Roles
 import unittest
 
-from passlib.hash import sha256_crypt
-
 
 class BasicTestCase(unittest.TestCase):
     username = "test@tests.com"
@@ -108,7 +106,8 @@ class BasicTestCase(unittest.TestCase):
 
         admin_token = self.login(self.client_id, self.admin_user, self.admin_pass)
         rv = self.app.get('/v1/user/', follow_redirects=True,
-                          headers={"Authorization": "Bearer %s" % admin_token.get('access_token')})
+                          headers={"Authorization": "Bearer %s" % admin_token.get('access_token'),
+                                   "If-None-Match": "%s" % "bad_etag"})
 
         assert rv.status_code == 200
 
@@ -121,6 +120,12 @@ class BasicTestCase(unittest.TestCase):
                 user_in_data = True
 
         assert user_in_data
+
+        new_tag = rv.headers["ETag"]
+        rv = self.app.get('/v1/user/', follow_redirects=True,
+                          headers={"Authorization": "Bearer %s" % admin_token.get('access_token'),
+                                   "If-None-Match": "%s" % new_tag})
+        assert rv.status_code == 304
 
     def test_user_detail(self):
         token = self.login(self.client_id, self.username, self.password)
