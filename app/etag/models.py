@@ -17,4 +17,4 @@ class Etag(db.Model):
 
     @staticmethod
     def create_etag(data):
-        return sha256_crypt.encrypt(data)
+        return sha256_crypt.encrypt(data, salt="samesaltforever")
