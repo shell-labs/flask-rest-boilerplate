@@ -12,8 +12,7 @@ from .http_errors import PreconditionFailed, PreconditionRequired
 from .constants import NOT_MODIFIED
 import six
 
-from .etag.models import Etag
-from app import db
+from .cache import models as cache
 
 # Abstract the exceptions
 BadRequest = BadRequest
@@ -102,30 +101,32 @@ class Resource(FlaskResource):
         (with strong etags) and concurrency control (http://fideloper.com/etags-and-optimistic-concurrency-control).
         Based on http://flask.pocoo.org/snippets/95/.
         '''
+        local_etag = ''
         if endpoint == 'detail':
-            local_etag = Etag.query.filter(Etag.pk == kwargs['pk']).first().etag
+            local_etag = cache.get_etag(kwargs['pk'])
             if self.request.method in ('PUT', 'DELETE'):
                 # for put and delete methods, it must have an if if_match header
-                if not self.request.if_match:
+                print(self.request.if_match.to_header())
+                if not self.request.if_match.as_set():
                     raise PreconditionRequired
                 # and it must be the same one stored
-                if local_etag not in self.request.if_match:
+                if local_etag.etag not in self.request.if_match:
                     raise PreconditionFailed
             elif self.request.method == 'GET' and self.request.if_none_match and \
-                    local_etag in self.request.if_none_match:
+                    local_etag.etag in self.request.if_none_match:
                 # if the method is get, if it have a header if_none_match end the etag is the same one stored,
                 # do nothing and return the same etag
                 response = make_response()
                 response.status_code = NOT_MODIFIED
-                response.set_etag(local_etag)
+                response.set_etag(local_etag.etag)
                 return response
         response = super(Resource, self).handle(endpoint, *args, **kwargs)
         if endpoint == 'list':
             #  for a list, the etag is checked after the request, to check if a resource of the list has changed
-            local_etag = Etag.query.filter(Etag.pk == self.request.url).first()
-            new_etag = Etag.create_etag(response.data)
+            local_etag = cache.get_etag(self.request.url)
+            new_etag = cache.Etag.create_etag(response.data)
             if local_etag is None:
-                local_etag = Etag(pk=self.request.url, etag=new_etag)
+                local_etag = cache.Etag(self.request.url, new_etag)
             else:
                 if self.request.method == 'GET' and self.request.if_none_match and \
                         local_etag.etag in self.request.if_none_match and local_etag.etag == new_etag:
@@ -137,23 +138,16 @@ class Resource(FlaskResource):
                     return response
                 else:
                     local_etag.etag = new_etag
-            db.session.add(local_etag)
-            db.session.commit()
-            response.set_etag(new_etag)
         # at the end of the request, create or update the etag if necessary, and add it to the headers
         if self.request.method == 'POST':
             data = json.loads(response.data)
-            etag = Etag(pk=data['id'], etag=Etag.create_etag(response.data))
-            db.session.add(etag)
-            db.session.commit()
-            response.set_etag(etag.etag)
+            local_etag = cache.Etag(data['id'], cache.Etag.create_etag(response.data))
+            response.set_etag(local_etag.etag)
         elif self.request.method == 'PUT':
-            etag = Etag.query.filter(Etag.pk == kwargs['pk']).first()
-            etag.etag = Etag.create_etag(response.data)
-            db.session.add(etag)
-            db.session.commit()
-        if 'pk' in kwargs.keys():
-            response.set_etag(Etag.query.filter(Etag.pk == kwargs['pk']).first().etag)
+            local_etag = cache.get_etag(kwargs['pk'])
+            local_etag.etag = cache.Etag.create_etag(response.data)
+        cache.commit_etag(local_etag)
+        response.set_etag(local_etag.etag)
         return response
 
 
