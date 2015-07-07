@@ -8,7 +8,7 @@ from app import app, db, auth
 from app.auth.oauth import GrantTypes
 from app.user.models import User, UserDetails
 from app.auth.models import Application, Grant, Client
-from app.etag.models import Etag
+from app.cache.models import Etag
 from app.restful import Unauthorized, PreconditionFailed, PreconditionRequired
 from app.constants import Roles
 import unittest
@@ -138,6 +138,10 @@ class BasicTestCase(unittest.TestCase):
 
         data = json.loads(rv.data)
         assert data.get('email', None) == self.username
+
+    def test_etag_user_detail(self):
+        token = self.login(self.client_id, self.username, self.password)
+        assert token.get('access_token', None)
 
         rv = self.app.get('/v1/user/%s/' % self.user_id, follow_redirects=True,
                           headers={"Authorization": "Bearer %s" % token.get('access_token'),
