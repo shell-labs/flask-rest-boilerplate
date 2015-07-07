@@ -106,7 +106,6 @@ class Resource(FlaskResource):
             local_etag = cache.get_etag(kwargs['pk'])
             if self.request.method in ('PUT', 'DELETE'):
                 # for put and delete methods, it must have an if if_match header
-                print(self.request.if_match.to_header())
                 if not self.request.if_match.as_set():
                     raise PreconditionRequired
                 # and it must be the same one stored
