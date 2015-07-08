@@ -69,7 +69,7 @@ def request_password():
         password = getpass.getpass('Password: ')
         password2 = getpass.getpass('Re-type: ')
         if (password != password2):
-            print "Password do not match"
+            print("Passwords do not match")
         else:
             return password
 
