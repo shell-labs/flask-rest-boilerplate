@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from .models import Etag
+from app import db
 
 
 def get_etag(uri):
