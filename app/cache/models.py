@@ -15,6 +15,6 @@ class Etag(db.Model):
 
     @staticmethod
     def calculate(data):
-        hash_object = hashlib.sha1(data.encode())
+        hash_object = hashlib.sha1(str(data).encode())
         hex_dig = hash_object.hexdigest()
         return hex_dig
