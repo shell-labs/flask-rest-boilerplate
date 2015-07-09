@@ -8,7 +8,7 @@ from app import app, db, auth
 from app.auth.oauth import GrantTypes
 from app.user.models import User, UserDetails
 from app.auth.models import Application, Grant, Client
-from app.cache.models import Etag
+from app.cache import models, etag
 from app.restful import Unauthorized, PreconditionFailed, PreconditionRequired
 from app.constants import Roles
 import unittest
@@ -56,15 +56,15 @@ class BasicTestCase(unittest.TestCase):
         db.session.add(client)
 
         db.session.commit()
-        etag = Etag(pk=user.username, etag=Etag.create_etag(str(user.id)))
-        db.session.add(etag)
+        user_etag = models.Etag(uri="/v1/user/%s/" % user.username, value=etag.calculate_etag_from_data(user.username))
+        db.session.add(user_etag)
         db.session.commit()
 
         self.user_id = user.username
         self.admin_id = admin.id
         self.application_id = app.id
         self.client_id = client.id
-        self.user_etag = etag.etag
+        self.user_etag = user_etag.value
 
     def tearDown(self):
         db.drop_all(bind=None)
