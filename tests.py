@@ -169,6 +169,24 @@ class BasicTestCase(unittest.TestCase):
         data = json.loads(rv.data)
         assert data.get('email', None) == 'email@test.com'
 
+    def test_etag_user_create(self):
+        token = self.login(self.client_id, self.admin_user, self.admin_pass)
+        assert token.get('access_token', None)
+
+        rv = self.app.post('/v1/user/', follow_redirects=True,
+                           data=json.dumps(dict(email='email@test.com', password='abc', name='Created user', gender='Male')),
+                           headers={"Authorization": "Bearer %s" % token.get('access_token')})
+
+        assert rv.status_code == 201
+
+        new_etag = rv.headers['ETag']
+        data = json.loads(rv.data)
+
+        rv = self.app.get('v1/user/%s/' % data.get('id', None), follow_redirects=True,
+                          headers={"Authorization": "Bearer %s" % token.get('access_token'),
+                                   "If-None-Match": "%s" % new_etag})
+        assert rv.status_code == 304
+
     def test_user_update(self):
         token = self.login(self.client_id, self.username, self.password)
         assert token.get('access_token', None)
