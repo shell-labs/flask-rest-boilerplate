@@ -146,7 +146,9 @@ class Resource(FlaskResource):
 
         # at the end of the request, create or update the etag if necessary, and add it to the headers
         if self.request.method in ['POST', 'PUT']:
-            local_etag = etag.calculate_etag_from_data(response.data)
+            local_etag = etag.calculate_etag_from_data(str(response.data))
+            if self.request.method == 'POST':
+                self.request.path += json.loads(response.data).get('id', None) + '/'
 
         etag.set_etag(self.request.path, local_etag)
         response.set_etag(local_etag)
