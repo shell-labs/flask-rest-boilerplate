@@ -101,16 +101,21 @@ class Resource(FlaskResource):
         (with strong etags) and concurrency control (http://fideloper.com/etags-and-optimistic-concurrency-control).
         Based on http://flask.pocoo.org/snippets/95/.
         '''
-        local_etag = ''
+        local_etag = None
+
+        # First case is the request for a single resource, ex: '/blog/post/1'
         if endpoint == 'detail':
             # See if there is an etag stored from the URI
             local_etag = etag.get_etag(self.request.path)
 
             if self.request.method in ('PUT', 'DELETE'):
                 # for put and delete methods, it must have an if if_match header
+                # for concurrency control and to avoid lost updates
                 if not self.request.if_match.as_set():
                     raise PreconditionRequired
-                # and it must be the same one stored
+
+                # If the stored etag is not the same in the if_match header,
+                # then the content has changed and we fail the update with a 412
                 if local_etag not in self.request.if_match:
                     raise PreconditionFailed
 
@@ -124,7 +129,7 @@ class Resource(FlaskResource):
 
                 return response
 
-        # Calculate the response
+        # Obtain the real response for the method
         response = super(Resource, self).handle(endpoint, *args, **kwargs)
         if endpoint == 'list':
             #  for a list, the etag is checked after the request, to check if a resource of the list has changed
@@ -145,13 +150,25 @@ class Resource(FlaskResource):
                 local_etag = new_etag
 
         # at the end of the request, create or update the etag if necessary, and add it to the headers
+        uri = self.request.path
         if self.request.method in ['POST', 'PUT']:
+            # If the request was a post or a put, the data has definitely changed
             local_etag = etag.calculate_etag_from_data(str(response.data))
             if self.request.method == 'POST':
-                self.request.path += json.loads(response.data).get('id', None) + '/'
+                # If the resource is being created, we need to add the resource id to the
+                # URI
+                uri += json.loads(response.data).get('id', None) + '/'
+        elif self.request.method in ['GET'] and local_etag is None:
+            # If the request is a GET, but the etag does not exist, we need to create it
+            # we will only fall here if the resource was created manually
+            local_etag = etag.calculate_etag_from_data(str(response.data))
 
-        etag.set_etag(self.request.path, local_etag)
+        # Store the etag
+        etag.set_etag(uri, local_etag)
+
+        # Update the response
         response.set_etag(local_etag)
+
         return response
 
 
