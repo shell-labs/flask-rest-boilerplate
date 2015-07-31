@@ -8,7 +8,7 @@ from app import app, db, auth
 from app.auth.oauth import GrantTypes
 from app.user.models import User, UserDetails
 from app.auth.models import Application, Grant, Client
-from app.cache import models, etag
+from app.cache import etag
 from app.restful import Unauthorized, PreconditionFailed, PreconditionRequired
 from app.constants import Roles
 import unittest
@@ -54,19 +54,12 @@ class BasicTestCase(unittest.TestCase):
         client = Client(app=app, name="Mobile Client",
                         allowed_grant_types=[GrantTypes.PASSWORD, GrantTypes.REFRESH_TOKEN])
         db.session.add(client)
-
-        db.session.commit()
-
-        # Create etag for user since it is created manually
-        user_etag = models.Etag(uri="/v1/user/%s/" % user.username, value=etag.calculate_etag_from_data(user.username))
-        db.session.add(user_etag)
         db.session.commit()
 
         self.user_id = user.username
         self.admin_id = admin.id
         self.application_id = app.id
         self.client_id = client.id
-        self.user_etag = user_etag.value
 
     def tearDown(self):
         db.drop_all(bind=None)
@@ -193,6 +186,13 @@ class BasicTestCase(unittest.TestCase):
         token = self.login(self.client_id, self.username, self.password)
         assert token.get('access_token', None)
 
+        # Get the user data
+        rv = self.app.get('v1/user/%s/' % self.user_id, follow_redirects=True,
+                          headers={"Authorization": "Bearer %s" % token.get('access_token')})
+
+        assert rv.headers.get('Etag', None)
+        etag = rv.headers.get('Etag')
+
         try:
             rv = self.app.put('/v1/user/%s/' % self.user_id, follow_redirects=True,
                               data=json.dumps(dict(password='abc')),
@@ -215,7 +215,7 @@ class BasicTestCase(unittest.TestCase):
         rv = self.app.put('/v1/user/%s/' % self.user_id, follow_redirects=True,
                           data=json.dumps(dict(password='abc')),
                           headers={"Authorization": "Bearer %s" % token.get('access_token'),
-                                   "If-Match": "%s" % self.user_etag})
+                                   "If-Match": "%s" % etag})
 
         assert rv.status_code == 202
 
