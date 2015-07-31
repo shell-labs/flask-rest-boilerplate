@@ -56,6 +56,8 @@ class BasicTestCase(unittest.TestCase):
         db.session.add(client)
 
         db.session.commit()
+
+        # Create etag for user since it is created manually
         user_etag = models.Etag(uri="/v1/user/%s/" % user.username, value=etag.calculate_etag_from_data(user.username))
         db.session.add(user_etag)
         db.session.commit()
