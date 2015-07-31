@@ -8,7 +8,7 @@ from app import app, db, auth
 from app.auth.oauth import GrantTypes
 from app.user.models import User, UserDetails
 from app.auth.models import Application, Grant, Client
-from app.cache.models import Etag
+from app.cache import etag
 from app.restful import Unauthorized, PreconditionFailed, PreconditionRequired
 from app.constants import Roles
 import unittest
@@ -54,17 +54,12 @@ class BasicTestCase(unittest.TestCase):
         client = Client(app=app, name="Mobile Client",
                         allowed_grant_types=[GrantTypes.PASSWORD, GrantTypes.REFRESH_TOKEN])
         db.session.add(client)
-
-        db.session.commit()
-        etag = Etag(pk=user.username, etag=Etag.create_etag(str(user.id)))
-        db.session.add(etag)
         db.session.commit()
 
         self.user_id = user.username
         self.admin_id = admin.id
         self.application_id = app.id
         self.client_id = client.id
-        self.user_etag = etag.etag
 
     def tearDown(self):
         db.drop_all(bind=None)
@@ -169,9 +164,34 @@ class BasicTestCase(unittest.TestCase):
         data = json.loads(rv.data)
         assert data.get('email', None) == 'email@test.com'
 
+    def test_etag_user_create(self):
+        token = self.login(self.client_id, self.admin_user, self.admin_pass)
+        assert token.get('access_token', None)
+
+        rv = self.app.post('/v1/user/', follow_redirects=True,
+                           data=json.dumps(dict(email='email@test.com', password='abc', name='Created user', gender='Male')),
+                           headers={"Authorization": "Bearer %s" % token.get('access_token')})
+
+        assert rv.status_code == 201
+
+        new_etag = rv.headers['ETag']
+        data = json.loads(rv.data)
+
+        rv = self.app.get('v1/user/%s/' % data.get('id', None), follow_redirects=True,
+                          headers={"Authorization": "Bearer %s" % token.get('access_token'),
+                                   "If-None-Match": "%s" % new_etag})
+        assert rv.status_code == 304
+
     def test_user_update(self):
         token = self.login(self.client_id, self.username, self.password)
         assert token.get('access_token', None)
+
+        # Get the user data
+        rv = self.app.get('v1/user/%s/' % self.user_id, follow_redirects=True,
+                          headers={"Authorization": "Bearer %s" % token.get('access_token')})
+
+        assert rv.headers.get('Etag', None)
+        etag = rv.headers.get('Etag')
 
         try:
             rv = self.app.put('/v1/user/%s/' % self.user_id, follow_redirects=True,
@@ -195,7 +215,7 @@ class BasicTestCase(unittest.TestCase):
         rv = self.app.put('/v1/user/%s/' % self.user_id, follow_redirects=True,
                           data=json.dumps(dict(password='abc')),
                           headers={"Authorization": "Bearer %s" % token.get('access_token'),
-                                   "If-Match": "%s" % self.user_etag})
+                                   "If-Match": "%s" % etag})
 
         assert rv.status_code == 202
 
