@@ -101,5 +101,22 @@ def new_admin(email):
 
     print("and is an administrator")
 
+
+@manager.command
+def passwd(email):
+    """Change a user password"""
+    # Check if the user already exists
+    user = User.query.filter(User.email == email).first()
+    if user:
+        if query_yes_no("Are you sure you want to change the password for user '%s'?" % email, default="no"):
+            user.password = request_password()
+            db.session.add(user)
+            db.session.commit()
+            return "Password has been changed for user '%s'"
+        else:
+            return "Command cancelled"
+
+    print("User with email '%s' does not exist" % email)
+
 if __name__ == '__main__':
     manager.run()
