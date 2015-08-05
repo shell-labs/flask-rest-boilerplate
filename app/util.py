@@ -4,6 +4,7 @@ import os
 import calendar
 import uuid as _uuid
 import binascii
+import urlparse
 
 from datetime import datetime, timedelta
 from collections import OrderedDict
@@ -126,3 +127,31 @@ def enum(*sequential, **kwargs):
         _fields = tuple(v for l in [sequential, list(kwargs.keys())] for v in l)
 
     return Enum(*[v for l in [list(range(len(sequential))), list(kwargs.values())] for v in l])
+
+
+def build_url(base, additional_params=None):
+    """Construct a URL based off of base containing all parameters in
+    the query portion of base plus any additional parameters.
+    Taken verbatim from https://github.com/NateFerrero/oauth2lib/blob/master/oauth2lib/utils.py
+    :param base: Base URL
+    :type base: str
+    ::param additional_params: Additional query parameters to include.
+    :type additional_params: dict
+    :rtype: str
+    """
+    url = urlparse.urlparse(base)
+    query_params = {}
+    query_params.update(urlparse.parse_qsl(url.query, True))
+    if additional_params is not None:
+        query_params.update(additional_params)
+        for k, v in additional_params.iteritems():
+            if v is None:
+                query_params.pop(k)
+
+    return urlparse.urlunparse((url.scheme,
+                                url.netloc,
+                                url.path,
+                                url.params,
+                                urllib.urlencode(query_params),
+                                url.fragment))
+
