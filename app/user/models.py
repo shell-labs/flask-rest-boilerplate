@@ -16,7 +16,7 @@ class User(db.Model):
     modified = db.Column(db.DateTime, default=now, onupdate=now)
     email = db.Column(db.String(255), unique=True, index=True)
 
-    username = db.Column(db.String(32), default=uuid, nullable=False, index=True)
+    username = db.Column(db.String(32), default=uuid, nullable=False, index=True, unique=True)
     _password = db.Column('password', db.String(128), nullable=False)
 
     def __init__(self, password=None, **kwargs):
