@@ -20,6 +20,12 @@ db = SQLAlchemy(app)
 from .auth import AuthProvider
 auth = AuthProvider(app)
 
+# CSRF protection for forms
+from flask.ext.wtf.csrf import CsrfProtect
+
+csrf = CsrfProtect()
+csrf.init_app(app)
+
 # Rest API
 from .restful import Api
 api = Api(app, auth)
