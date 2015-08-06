@@ -19,6 +19,9 @@ class Config(object):
     # Secret key for flask sessions and CSRF protection
     SECRET_KEY = "secret key that you need to change, seriously!"
 
+    # Do not check CSRF by default
+    WTF_CSRF_CHECK_DEFAULT = False
+
 
 class ProductionConfig(Config):
     SQLALCHEMY_DATABASE_URI = 'mysql://user@localhost/foo'
