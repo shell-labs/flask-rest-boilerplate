@@ -3,8 +3,7 @@ from __future__ import unicode_literals
 from flask.ext.script import Manager
 from flask.ext.migrate import Migrate, MigrateCommand
 from app import app, db
-from app.user.models import User
-from app.auth.models import Grant
+from app.user.models import User, Grant
 from app.constants import Roles
 
 import sys

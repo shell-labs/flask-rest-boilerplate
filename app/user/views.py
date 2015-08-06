@@ -3,11 +3,10 @@ from __future__ import unicode_literals
 
 import flask
 
-from .models import User, UserDetails
+from .models import User, UserDetails, Grant
 from .forms import LoginForm
 
 from flask.ext.login import login_user, login_required, logout_user
-from app.auth.models import Grant
 
 from app import api, db, app
 from app.restful import Unauthorized, BadRequest, NotFound
