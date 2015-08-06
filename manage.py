@@ -51,6 +51,27 @@ def query_yes_no(question, default="yes"):
                              "(or 'y' or 'n').\n")
 
 
+def query(question, default=None):
+    """Request a data prompt through raw_input() and return the answer.
+    If default is set and the user does not enter an input, then default
+    value will be used for the answer"""
+
+    prompt = ": "
+    if default is not None:
+        prompt = " [default='%s']: " % default
+
+    while True:
+        sys.stdout.write(question + prompt)
+        response = raw_input()
+
+        if response == '' and default is not None:
+            return default
+        elif response != '':
+            return response
+        else:
+            sys.stdout.write("Please enter a value.\n")
+
+
 @MigrateCommand.command
 def create():
     "Initialize the database"
