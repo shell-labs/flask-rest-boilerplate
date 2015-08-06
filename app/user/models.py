@@ -5,10 +5,11 @@ from app.util import now, enum, uuid
 from app.sql import ChoiceType
 from app.constants import Genders
 
+from flask.ext.login import UserMixin
 from passlib.hash import sha256_crypt
 
 
-class User(db.Model):
+class User(db.Model, UserMixin):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -53,6 +54,9 @@ class User(db.Model):
 
     def __repr__(self):
         return '<User %r>' % (self.email)
+
+    def get_id(self):
+        return unicode(self.username)
 
 
 class UserDetails(db.Model):
