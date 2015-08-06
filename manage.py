@@ -4,6 +4,7 @@ from flask.ext.script import Manager
 from flask.ext.migrate import Migrate, MigrateCommand
 from app import app, db
 from app.user.models import User, Grant
+from app.auth.models import Application, Client
 from app.constants import Roles
 
 import sys
@@ -13,6 +14,9 @@ migrate = Migrate(app, db)
 
 manager = Manager(app)
 manager.add_command('db', MigrateCommand)
+
+NewCommand = Manager(usage='Create resources on database')
+manager.add_command('new', NewCommand)
 
 
 def query_yes_no(question, default="yes"):
@@ -50,6 +54,40 @@ def query_yes_no(question, default="yes"):
                              "(or 'y' or 'n').\n")
 
 
+def query(question, default=None, required=True):
+    """Request a data prompt through raw_input() and return the answer.
+    If default is set and the user does not enter an input, then default
+    value will be used for the answer"""
+
+    prompt = ": "
+    if default is not None:
+        prompt = " [%s]: " % default
+
+    while True:
+        sys.stdout.write(question + prompt)
+        response = raw_input()
+
+        if response:
+            return response
+        elif default is not None:
+            return default
+        elif not required:
+            return None
+        else:
+            sys.stdout.write("Please enter a value.\n")
+
+
+def query_password():
+    password = None
+    while True:
+        password = getpass.getpass('Password: ')
+        password2 = getpass.getpass('Re-type: ')
+        if (password != password2):
+            print("Passwords do not match")
+        else:
+            return password
+
+
 @MigrateCommand.command
 def create():
     "Initialize the database"
@@ -62,30 +100,19 @@ def populate(sample_data=False):
     pass
 
 
-def request_password():
-    password = None
-    while True:
-        password = getpass.getpass('Password: ')
-        password2 = getpass.getpass('Re-type: ')
-        if (password != password2):
-            print("Passwords do not match")
-        else:
-            return password
-
-
 def request_user_details():
     pass
 
 
-@manager.command
-def new_admin(email):
+@NewCommand.command
+def admin(email):
     """Create an administrator account"""
 
     # Check if the user already exists
     user = User.query.filter(User.email == email).first()
     if not user:
         user = User(email=email)
-        user.password = request_password()
+        user.password = query_password()
         db.session.add(user)
     else:
         sys.stdout.write("User '%s' already exists " % email)
@@ -99,6 +126,94 @@ def new_admin(email):
             return "Command cancelled"
 
     print("and is an administrator")
+
+
+@NewCommand.command
+def application(email):
+    """Create an application for used identifier by the specified email"""
+
+    # Check if the user exists
+    user = User.query.filter(User.email == email).first()
+    if not user:
+        return "User with email '%s' does not exist" % email
+
+    application = Application.query.filter(Application.owner == user).first()
+    operation = "updated"
+    if application is None:
+        operation = "created"
+        application = Application()
+    elif not query_yes_no("An application already exists for user %s, do you want to edit it?" % email, default="yes"):
+        return "The operation has been cancelled"
+
+    application.name = query('Application name', default=application.name)
+
+    description = query('Describe your application (200 chars max)', default=application.description, required=False)
+    description = (description[:200]) if description and len(description) > 200 else description
+    application.description = description
+
+    application.url = query('Give a URL for your application', default=application.url)
+
+    application.owner = user
+
+    db.session.add(application)
+    db.session.commit()
+
+    return "The application with id %s for user %s has been %s" % (application.id, email, operation)
+
+
+@NewCommand.option('-a', '--app', help="Applicaton id", dest='app_id')
+@NewCommand.option('-c', '--client', help="Id of the client to edit", dest='client_id')
+def client(app_id=None, client_id=None):
+    """Create/edit a client for the specified app id"""
+
+    # Check if the app exists
+    application = None
+
+    if app_id:
+        application = Application.query.get(app_id)
+        if not application:
+            return "Application with id '%s' does not exist" % app_id
+
+    client = None
+    if client_id:
+        client = Client.query.get(client_id)
+    elif application is None:
+        return "An application id is required to create a new client"
+
+    operation = "updated"
+    if client is None:
+        operation = "created"
+        client = Client()
+    elif not query_yes_no("Are you sure you want to edit the client with id %s?" % client.id, default="yes"):
+        return "The operation has been cancelled"
+    else:
+        application = client.app
+
+    client.name = query('Provide client name for application \'%s\'' % application.name, default=client.name)
+    client.redirect_uri = query('Redirect URI', default=client.redirect_uri)
+    client.app = application
+
+    db.session.add(client)
+    db.session.commit()
+
+    return "The client with id %s has been %s" % (client.id, operation)
+
+
+@manager.command
+def passwd(email):
+    """Change a user password"""
+    # Check if the user already exists
+    user = User.query.filter(User.email == email).first()
+    if user:
+        if query_yes_no("Are you sure you want to change the password for user '%s'?" % email, default="no"):
+            user.password = query_password()
+            db.session.add(user)
+            db.session.commit()
+            return "Password has been changed for user '%s'"
+        else:
+            return "Command cancelled"
+
+    print("User with email '%s' does not exist" % email)
 
 if __name__ == '__main__':
     manager.run()
