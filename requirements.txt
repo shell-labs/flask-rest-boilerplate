@@ -6,3 +6,5 @@ flask-script
 flask-migrate
 restless
 passlib
+flask-login
+flask-wtf
