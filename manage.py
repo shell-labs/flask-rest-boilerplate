@@ -53,23 +53,25 @@ def query_yes_no(question, default="yes"):
                              "(or 'y' or 'n').\n")
 
 
-def query(question, default=None):
+def query(question, default=None, required=True):
     """Request a data prompt through raw_input() and return the answer.
     If default is set and the user does not enter an input, then default
     value will be used for the answer"""
 
     prompt = ": "
     if default is not None:
-        prompt = " [default='%s']: " % default
+        prompt = " [%s]: " % default
 
     while True:
         sys.stdout.write(question + prompt)
         response = raw_input()
 
-        if response == '' and default is not None:
-            return default
-        elif response != '':
+        if response:
             return response
+        elif default is not None:
+            return default
+        elif not required:
+            return None
         else:
             sys.stdout.write("Please enter a value.\n")
 
