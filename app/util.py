@@ -130,36 +130,32 @@ def enum(*sequential, **kwargs):
     return Enum(*[v for l in [list(range(len(sequential))), list(kwargs.values())] for v in l])
 
 
-def build_url(base, query_params={}, fragments={}):
+def build_url(base, query_params={}, fragment={}):
     """Construct a URL based off of base containing all parameters in
     the query portion of base plus any additional parameters.
     Taken from https://github.com/NateFerrero/oauth2lib/blob/master/oauth2lib/utils.py and extended to allow
-    paramenters as fragments
+    paramenters as fragment
     :param base: Base URL
     :type base: str
     ::param query_params: Additional query parameters to include.
     :type query_params: dict
-    ::param fragments: Additional parameters to include in the fragment section of the url
-    :type fragments: dict
+    ::param fragment: Additional parameters to include in the fragment section of the url
+    :type fragment: dict
     :rtype: str
     """
     url = urlparse.urlparse(base)
     query_params.update(urlparse.parse_qsl(url.query, True))
-    for k, v in query_params.iteritems():
-        if v is None:
-            query_params.pop(k)
+    query_params = {k: v for k, v in query_params.iteritems() if v is not None}
 
-    fragments.update(urlparse.parse_qsl(url.fragment, True))
-    for k, v in fragments.iteritems():
-        if v is None:
-            fragments.pop(k)
+    fragment.update(urlparse.parse_qsl(url.fragment, True))
+    fragment = {k: v for k, v in fragment.iteritems() if v is not None}
 
     return urlparse.urlunparse((url.scheme,
                                 url.netloc,
                                 url.path,
                                 url.params,
                                 urllib.urlencode(query_params),
-                                urllib.urlencode(fragments)))
+                                urllib.urlencode(fragment)))
 
 
 from flask import request, url_for
