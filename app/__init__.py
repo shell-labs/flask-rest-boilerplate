@@ -20,7 +20,7 @@ db = SQLAlchemy(app)
 from .auth import AuthProvider
 auth = AuthProvider(app)
 
-# Api
+# Rest API
 from .restful import Api
 api = Api(app, auth)
 
