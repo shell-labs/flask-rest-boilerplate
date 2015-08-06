@@ -15,6 +15,9 @@ migrate = Migrate(app, db)
 manager = Manager(app)
 manager.add_command('db', MigrateCommand)
 
+NewCommand = Manager(usage='Create resources on database')
+manager.add_command('new', NewCommand)
+
 
 def query_yes_no(question, default="yes"):
     """Ask a yes/no question via raw_input() and return their answer.
