@@ -4,6 +4,7 @@ import os
 import calendar
 import uuid as _uuid
 import binascii
+import urllib
 import urlparse
 
 from datetime import datetime, timedelta
@@ -129,31 +130,36 @@ def enum(*sequential, **kwargs):
     return Enum(*[v for l in [list(range(len(sequential))), list(kwargs.values())] for v in l])
 
 
-def build_url(base, additional_params=None):
+def build_url(base, query_params={}, fragments={}):
     """Construct a URL based off of base containing all parameters in
     the query portion of base plus any additional parameters.
-    Taken verbatim from https://github.com/NateFerrero/oauth2lib/blob/master/oauth2lib/utils.py
+    Taken from https://github.com/NateFerrero/oauth2lib/blob/master/oauth2lib/utils.py and extended to allow
+    paramenters as fragments
     :param base: Base URL
     :type base: str
-    ::param additional_params: Additional query parameters to include.
-    :type additional_params: dict
+    ::param query_params: Additional query parameters to include.
+    :type query_params: dict
+    ::param fragments: Additional parameters to include in the fragment section of the url
+    :type fragments: dict
     :rtype: str
     """
     url = urlparse.urlparse(base)
-    query_params = {}
     query_params.update(urlparse.parse_qsl(url.query, True))
-    if additional_params is not None:
-        query_params.update(additional_params)
-        for k, v in additional_params.iteritems():
-            if v is None:
-                query_params.pop(k)
+    for k, v in query_params.iteritems():
+        if v is None:
+            query_params.pop(k)
+
+    fragments.update(urlparse.parse_qsl(url.fragment, True))
+    for k, v in fragments.iteritems():
+        if v is None:
+            fragments.pop(k)
 
     return urlparse.urlunparse((url.scheme,
                                 url.netloc,
                                 url.path,
                                 url.params,
                                 urllib.urlencode(query_params),
-                                url.fragment))
+                                urllib.urlencode(fragments)))
 
 
 from flask import request, url_for
