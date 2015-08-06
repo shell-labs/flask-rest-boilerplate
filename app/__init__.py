@@ -26,6 +26,21 @@ from flask.ext.wtf.csrf import CsrfProtect
 csrf = CsrfProtect()
 csrf.init_app(app)
 
+# Login Manager
+from flask.ext.login import LoginManager
+from .user.models import User
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "login"
+
+
+# Tell the login manager how to find the user
+@login_manager.user_loader
+def load_user(userid):
+    return User.query.filter_by(username=userid).first()
+
+
 # Rest API
 from .restful import Api
 api = Api(app, auth)
