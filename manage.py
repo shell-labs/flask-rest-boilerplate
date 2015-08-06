@@ -4,7 +4,7 @@ from flask.ext.script import Manager
 from flask.ext.migrate import Migrate, MigrateCommand
 from app import app, db
 from app.user.models import User
-from app.auth.models import Grant, Application
+from app.auth.models import Grant, Application, Client
 from app.constants import Roles
 
 import sys
@@ -159,6 +159,44 @@ def application(email):
     db.session.commit()
 
     return "The application with id %s for user %s has been %s" % (application.id, email, operation)
+
+
+@NewCommand.option('-a', '--app', help="Applicaton id", dest='app_id')
+@NewCommand.option('-c', '--client', help="Id of the client to edit", dest='client_id')
+def client(app_id=None, client_id=None):
+    """Create/edit a client for the specified app id"""
+
+    # Check if the app exists
+    application = None
+
+    if app_id:
+        application = Application.query.get(app_id)
+        if not application:
+            return "Application with id '%s' does not exist" % app_id
+
+    client = None
+    if client_id:
+        client = Client.query.get(client_id)
+    elif application is None:
+        return "An application id is required to create a new client"
+
+    operation = "updated"
+    if client is None:
+        operation = "created"
+        client = Client()
+    elif not query_yes_no("Are you sure you want to edit the client with id %s?" % client.id, default="yes"):
+        return "The operation has been cancelled"
+    else:
+        application = client.app
+
+    client.name = query('Provide client name for application \'%s\'' % application.name, default=client.name)
+    client.redirect_uri = query('Redirect URI', default=client.redirect_uri)
+    client.app = application
+
+    db.session.add(client)
+    db.session.commit()
+
+    return "The client with id %s has been %s" % (client.id, operation)
 
 
 @manager.command
