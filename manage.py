@@ -102,8 +102,8 @@ def request_user_details():
     pass
 
 
-@manager.command
-def new_admin(email):
+@NewCommand.command
+def admin(email):
     """Create an administrator account"""
 
     # Check if the user already exists
