@@ -4,7 +4,6 @@ from app import db
 from app.user.models import User
 from app.util import now, secret, uuid
 from app.sql import ChoiceType, StringListType, UUID
-from app.constants import Roles
 
 from .oauth import GrantTypes
 from datetime import timedelta
@@ -24,22 +23,6 @@ class Application(db.Model):
         # An application has a unique user owner
         owner_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True)
         owner = db.relationship('User')
-
-
-class Grant(db.Model):
-    __tablename__ = 'grants'
-
-    id = db.Column(db.Integer, primary_key=True)
-    created = db.Column(db.DateTime, default=now)
-    modified = db.Column(db.DateTime, default=now, onupdate=now)
-    role = db.Column(ChoiceType(Roles), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-
-    user = db.relationship('User')
-
-    @classmethod
-    def check_grant(cls, user, role):
-        return cls.query.filter(Grant.user == user, Grant.role == role).first() is not None
 
 
 class Client(db.Model):

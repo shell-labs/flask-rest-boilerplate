@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 from .oauth import OAuth2Provider, OAuth2Exception
-from app.user.models import User
-from .models import Client, Token, Grant
+from app.user.models import User, Grant
+from .models import Client, Token
 from app import db, app
 
 

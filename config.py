@@ -16,6 +16,12 @@ class Config(object):
     APPLICATION_LOG = os.path.join(BASE_DIR, 'log', 'application.log')
     ACCESS_LOG = os.path.join(BASE_DIR, 'log', 'access.log')
 
+    # Secret key for flask sessions and CSRF protection
+    SECRET_KEY = "secret key that you need to change, seriously!"
+
+    # Do not check CSRF by default
+    WTF_CSRF_CHECK_DEFAULT = False
+
 
 class ProductionConfig(Config):
     SQLALCHEMY_DATABASE_URI = 'mysql://user@localhost/foo'

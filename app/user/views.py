@@ -1,11 +1,57 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
-from .models import User, UserDetails
-from app.auth.models import Grant
 
-from app import api, db
+import flask
+
+from .models import User, UserDetails, Grant
+from .forms import LoginForm
+
+from flask.ext.login import login_user, login_required, logout_user
+
+from app import api, db, app, csrf
 from app.restful import Unauthorized, BadRequest, NotFound
 from app.constants import Roles, Genders
+from app.util import is_safe_url
+
+
+@app.route('/', endpoint='index')
+def index():
+    return "IT WORKS!!"
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    # Protect with csrf
+    csrf.protect()
+
+    # Here we use a class of some kind to represent and validate our
+    # client-side form data. For example, WTForms is a library that will
+    # handle this for us.
+    form = LoginForm()
+    if form.validate_on_submit():
+        # Login and validate the user.
+        login_user(form.user)
+
+        flask.flash('Logged in successfully.')
+
+        next = flask.request.args.get('next')
+        if not is_safe_url(next):
+            return flask.abort(400)
+
+        return flask.redirect(next or flask.url_for('index'))
+
+    return flask.render_template('login.html', form=form)
+
+
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    next = flask.request.args.get('next')
+    if not is_safe_url(next):
+        return flask.abort(400)
+
+    return flask.redirect(next or flask.url_for('index'))
 
 
 @api.resource('/v1/user/')

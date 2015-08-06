@@ -6,8 +6,8 @@ from flask import json
 from flask.ext.sqlalchemy import SQLAlchemy
 from app import app, db, auth
 from app.auth.oauth import GrantTypes
-from app.user.models import User, UserDetails
-from app.auth.models import Application, Grant, Client
+from app.user.models import User, UserDetails, Grant
+from app.auth.models import Application, Client
 from app.cache import etag
 from app.restful import Unauthorized, PreconditionFailed, PreconditionRequired
 from app.constants import Roles

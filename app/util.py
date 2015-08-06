@@ -4,6 +4,8 @@ import os
 import calendar
 import uuid as _uuid
 import binascii
+import urllib
+import urlparse
 
 from datetime import datetime, timedelta
 from collections import OrderedDict
@@ -126,3 +128,52 @@ def enum(*sequential, **kwargs):
         _fields = tuple(v for l in [sequential, list(kwargs.keys())] for v in l)
 
     return Enum(*[v for l in [list(range(len(sequential))), list(kwargs.values())] for v in l])
+
+
+def build_url(base, query_params={}, fragment={}):
+    """Construct a URL based off of base containing all parameters in
+    the query portion of base plus any additional parameters.
+    Taken from https://github.com/NateFerrero/oauth2lib/blob/master/oauth2lib/utils.py and extended to allow
+    paramenters as fragment
+    :param base: Base URL
+    :type base: str
+    ::param query_params: Additional query parameters to include.
+    :type query_params: dict
+    ::param fragment: Additional parameters to include in the fragment section of the url
+    :type fragment: dict
+    :rtype: str
+    """
+    url = urlparse.urlparse(base)
+    query_params.update(urlparse.parse_qsl(url.query, True))
+    query_params = {k: v for k, v in query_params.iteritems() if v is not None}
+
+    fragment.update(urlparse.parse_qsl(url.fragment, True))
+    fragment = {k: v for k, v in fragment.iteritems() if v is not None}
+
+    return urlparse.urlunparse((url.scheme,
+                                url.netloc,
+                                url.path,
+                                url.params,
+                                urllib.urlencode(query_params),
+                                urllib.urlencode(fragment)))
+
+
+from flask import request, url_for
+
+
+def is_safe_url(target):
+    """
+    A function that ensures that a redirect target will lead to the same server
+
+    A common pattern with form processing is to automatically redirect back to
+    the user. There are usually two ways this is done: by inspecting a next URL
+    parameter or by looking at the HTTP referrer. Unfortunately you also have to
+    make sure that users are not redirected to malicious attacker's pages and
+    just to the same host.
+
+    Source: http://flask.pocoo.org/snippets/62/
+    """
+    ref_url = urlparse.urlparse(request.host_url)
+    test_url = urlparse.urlparse(urlparse.urljoin(request.host_url, target))
+    return test_url.scheme in ('http', 'https') and \
+        ref_url.netloc == test_url.netloc
