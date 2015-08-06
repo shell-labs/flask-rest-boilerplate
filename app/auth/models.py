@@ -51,7 +51,7 @@ class Client(db.Model):
     secret = db.Column('secret', db.String(16), unique=True, default=secret)
 
     name = db.Column(db.String(64))
-    url = db.Column(db.String(256))
+    redirect_uri = db.Column(db.String(256))
 
     # The list of allowed grant types for this client
     allowed_grant_types = db.Column(StringListType(GrantTypes), default=[GrantTypes.REFRESH_TOKEN])
