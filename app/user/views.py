@@ -8,6 +8,11 @@ from app.restful import Unauthorized, BadRequest, NotFound
 from app.constants import Roles, Genders
 
 
+@app.route('/', endpoint='index')
+def index():
+    return "IT WORKS!!"
+
+
 @api.resource('/v1/user/')
 class UserResource:
     aliases = {
