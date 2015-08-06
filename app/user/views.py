@@ -41,6 +41,17 @@ def login():
     return flask.render_template('login.html', form=form)
 
 
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    next = flask.request.args.get('next')
+    if not is_safe_url(next):
+        return flask.abort(400)
+
+    return flask.redirect(next or flask.url_for('index'))
+
+
 @api.resource('/v1/user/')
 class UserResource:
     aliases = {
