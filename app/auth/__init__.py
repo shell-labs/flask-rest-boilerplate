@@ -4,13 +4,21 @@ from .oauth import OAuth2Provider, OAuth2Exception
 from app.user.models import User, Grant
 from .models import Client, Token
 from app import db, app
+from flask.ext.login import current_user
 
 
 class AuthProvider(OAuth2Provider):
-    def validate_client(self, client_id, grant_type, client_secret=None):
+    def validate_client(self, client_id, grant_type=None, client_secret=None):
         client = Client.query.get(client_id)
         if client and (client_secret is None or client.secret == client_secret):
-            return grant_type in client.allowed_grant_types
+            return grant_type is None or grant_type in client.allowed_grant_types
+
+        return False
+
+    def validate_redirect_uri(self, client_id, redirect_uri):
+        client = Client.query.get(client_id)
+        if client and client.redirect_uri == redirect_uri:
+            return True
 
         return False
 
@@ -35,13 +43,19 @@ class AuthProvider(OAuth2Provider):
 
         return token.user
 
+    def from_session(self):
+        return current_user
+
     def discard_refresh_token(self, client_id, refresh_token):
-        token = Token.query.filter_by(client_id=client_id, refresh_token=refresh_token).first()
+        token = Token.query.filter_by(client_id=client_id, refresh_token=refresh_token).first(syn)
         if not token:
             return
 
         db.session.delete(token)
         db.session.commit()
+
+    def discard_expired(self, client_id, user):
+        Token.query.filter_by(client_id=client_id, expired=True, refresh_token=None).delete(synchronize_session='fetch')
 
     def persist_token_information(self, client_id, access_token,
                                   token_type, expires_in,
@@ -71,3 +85,11 @@ class AuthProvider(OAuth2Provider):
                 return True
 
         return False
+
+    def get_client_details(self, client_id):
+        client = Client.query.get(client_id)
+
+        appname = client.app.name
+        owner = client.app.owner.details.name
+
+        return appname, owner
