@@ -73,7 +73,7 @@ class Token(db.Model):
 
     token_type = db.Column(db.String(20), nullable=False)
     access_token = db.Column(db.String(40), nullable=False, index=True)
-    refresh_token = db.Column(db.String(40), nullable=False, index=True)
+    refresh_token = db.Column(db.String(40), index=True)
     _expires_in = db.Column('expires_in', db.Integer, nullable=False)
 
     user = db.relationship('User')
