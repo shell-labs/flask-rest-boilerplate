@@ -8,7 +8,7 @@ from .forms import LoginForm
 
 from flask.ext.login import login_user, login_required, logout_user
 
-from app import api, db, app
+from app import api, db, app, csrf
 from app.restful import Unauthorized, BadRequest, NotFound
 from app.constants import Roles, Genders
 from app.util import is_safe_url
@@ -21,6 +21,9 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    # Protect with csrf
+    csrf.protect()
+
     # Here we use a class of some kind to represent and validate our
     # client-side form data. For example, WTForms is a library that will
     # handle this for us.
