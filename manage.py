@@ -77,6 +77,17 @@ def query(question, default=None, required=True):
             sys.stdout.write("Please enter a value.\n")
 
 
+def query_password():
+    password = None
+    while True:
+        password = getpass.getpass('Password: ')
+        password2 = getpass.getpass('Re-type: ')
+        if (password != password2):
+            print("Passwords do not match")
+        else:
+            return password
+
+
 @MigrateCommand.command
 def create():
     "Initialize the database"
@@ -87,17 +98,6 @@ def create():
 def populate(sample_data=False):
     "Populate database with default data"
     pass
-
-
-def request_password():
-    password = None
-    while True:
-        password = getpass.getpass('Password: ')
-        password2 = getpass.getpass('Re-type: ')
-        if (password != password2):
-            print("Passwords do not match")
-        else:
-            return password
 
 
 def request_user_details():
@@ -112,7 +112,7 @@ def admin(email):
     user = User.query.filter(User.email == email).first()
     if not user:
         user = User(email=email)
-        user.password = request_password()
+        user.password = query_password()
         db.session.add(user)
     else:
         sys.stdout.write("User '%s' already exists " % email)
@@ -206,7 +206,7 @@ def passwd(email):
     user = User.query.filter(User.email == email).first()
     if user:
         if query_yes_no("Are you sure you want to change the password for user '%s'?" % email, default="no"):
-            user.password = request_password()
+            user.password = query_password()
             db.session.add(user)
             db.session.commit()
             return "Password has been changed for user '%s'"
