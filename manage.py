@@ -4,6 +4,7 @@ from flask.ext.script import Manager
 from flask.ext.migrate import Migrate, MigrateCommand
 from app import app, db
 from app.user.models import User, Grant
+from app.auth.models import Application
 from app.constants import Roles
 
 import sys
@@ -125,6 +126,39 @@ def admin(email):
             return "Command cancelled"
 
     print("and is an administrator")
+
+
+@NewCommand.command
+def application(email):
+    """Create an application for used identifier by the specified email"""
+
+    # Check if the user exists
+    user = User.query.filter(User.email == email).first()
+    if not user:
+        return "User with email '%s' does not exist" % email
+
+    application = Application.query.filter(Application.owner == user).first()
+    operation = "updated"
+    if application is None:
+        operation = "created"
+        application = Application()
+    elif not query_yes_no("An application already exists for user %s, do you want to edit it?" % email, default="yes"):
+        return "The operation has been cancelled"
+
+    application.name = query('Application name', default=application.name)
+
+    description = query('Describe your application (200 chars max)', default=application.description, required=False)
+    description = (description[:200]) if description and len(description) > 200 else description
+    application.description = description
+
+    application.url = query('Give a URL for your application', default=application.url)
+
+    application.owner = user
+
+    db.session.add(application)
+    db.session.commit()
+
+    return "The application with id %s for user %s has been %s" % (application.id, email, operation)
 
 
 @manager.command
