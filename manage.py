@@ -6,6 +6,7 @@ from app import app, db
 from app.user.models import User, Grant
 from app.auth.models import Application, Client
 from app.constants import Roles
+from six import string_types
 
 import sys
 import getpass
@@ -84,6 +85,29 @@ def query_password():
             print("Passwords do not match")
         else:
             return password
+
+
+def query_choices(question, choices, default=None, required=True):
+    """Prompt a list of choices to the user and return the selected answer
+    """
+    options = []
+    _choices = []
+    for choice in choices:
+        if isinstance(choice, string_types):
+            options.append(choice)
+        else:
+            options.append("%s [%s]" % (choice[1], choice[0]))
+            choice = choice[0]
+        _choices.append(choice)
+
+    while True:
+        rv = query(question + ' (%s)' % ', '.join(options), default=default,
+                   required=required)
+
+        if not rv and not required:
+            return default
+        elif rv in _choices:
+            return rv
 
 
 @MigrateCommand.command
