@@ -73,8 +73,6 @@ def query(question, default=None, required=True):
             return default
         elif not required:
             return None
-        else:
-            sys.stdout.write("Please enter a value.\n")
 
 
 def query_password():
