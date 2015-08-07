@@ -110,6 +110,21 @@ def query_choices(question, choices, default=None, required=True):
             return rv
 
 
+def query_multiple(question, choices, default=[]):
+    """Prompt the user to select multiple elements from a list of choices"""
+    # In case someone passes something other than a list
+    default = default if default and not isinstance(default, string_types) else []
+    selection = [v for v in default if v in choices]
+    while True:
+        rv = query_choices(question, choices, default=None, required=False)
+        if rv:
+            if rv not in selection:
+                selection.append(rv)
+            print("Select another value? (ENTER to finish)")
+        elif len(selection) > 0:
+            return selection
+
+
 @MigrateCommand.command
 def create():
     "Initialize the database"
