@@ -5,7 +5,9 @@ from flask.ext.migrate import Migrate, MigrateCommand
 from app import app, db
 from app.user.models import User, Grant
 from app.auth.models import Application, Client
+from app.auth.oauth import GrantTypes
 from app.constants import Roles
+from six import string_types
 
 import sys
 import getpass
@@ -73,8 +75,6 @@ def query(question, default=None, required=True):
             return default
         elif not required:
             return None
-        else:
-            sys.stdout.write("Please enter a value.\n")
 
 
 def query_password():
@@ -86,6 +86,44 @@ def query_password():
             print("Passwords do not match")
         else:
             return password
+
+
+def query_choices(question, choices, default=None, required=True):
+    """Prompt a list of choices to the user and return the selected answer
+    """
+    options = []
+    _choices = []
+    for choice in choices:
+        if isinstance(choice, string_types):
+            options.append(choice)
+        else:
+            options.append("%s [%s]" % (choice[1], choice[0]))
+            choice = choice[0]
+        _choices.append(choice)
+
+    while True:
+        rv = query(question + ' (%s)' % ', '.join(options), default=default,
+                   required=required)
+
+        if not rv and not required:
+            return default
+        elif rv in _choices:
+            return rv
+
+
+def query_multiple(question, choices, default=[]):
+    """Prompt the user to select multiple elements from a list of choices"""
+    # In case someone passes something other than a list
+    default = default if default and not isinstance(default, string_types) else []
+    selection = [v for v in default if v in choices]
+    while True:
+        rv = query_choices(question, choices, default=None, required=False)
+        if rv:
+            if rv not in selection:
+                selection.append(rv)
+            print("Select another value? (ENTER to finish)")
+        elif len(selection) > 0:
+            return selection
 
 
 @MigrateCommand.command
@@ -191,6 +229,8 @@ def client(app_id=None, client_id=None):
 
     client.name = query('Provide client name for application \'%s\'' % application.name, default=client.name)
     client.redirect_uri = query('Redirect URI', default=client.redirect_uri)
+    client.allowed_grant_types = query_multiple('Select grant types', GrantTypes, default=client.allowed_grant_types)
+
     client.app = application
 
     db.session.add(client)
