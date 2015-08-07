@@ -5,6 +5,7 @@ from flask.ext.migrate import Migrate, MigrateCommand
 from app import app, db
 from app.user.models import User, Grant
 from app.auth.models import Application, Client
+from app.auth.oauth import GrantTypes
 from app.constants import Roles
 from six import string_types
 
@@ -228,6 +229,8 @@ def client(app_id=None, client_id=None):
 
     client.name = query('Provide client name for application \'%s\'' % application.name, default=client.name)
     client.redirect_uri = query('Redirect URI', default=client.redirect_uri)
+    client.allowed_grant_types = query_multiple('Select grant types', GrantTypes, default=client.allowed_grant_types)
+
     client.app = application
 
     db.session.add(client)
