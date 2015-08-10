@@ -73,13 +73,12 @@ if app.config.get('ACCESS_LOG', None):
     def pre_request_logging():
         # Log except when testing
         if not app.config.get('TESTING'):
-            if 'text/html' in request.headers['Accept']:
-                access_log.info('\t'.join([
-                    request.remote_addr,
-                    request.method,
-                    request.url,
-                    str(request.data)])
-                )
+            access_log.info('\t'.join([
+                request.remote_addr,
+                request.method,
+                request.url,
+                str(request.data)])
+            )
 
 
 # Sample HTTP error handling
