@@ -18,7 +18,7 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(255), unique=True, index=True)
 
     username = db.Column(db.String(32), default=uuid, nullable=False, index=True, unique=True)
-    _password = db.Column('password', db.String(128), nullable=False)
+    _password = db.Column('password', db.String(128))
 
     def __init__(self, password=None, **kwargs):
         super(User, self).__init__(**kwargs)
