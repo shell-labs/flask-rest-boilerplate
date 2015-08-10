@@ -18,9 +18,7 @@ import six
 @login_required
 def authorization_code():
     # Get a dict of POSTed form data
-    data = {k: d[k] for d in [request.values] for k in six.iterkeys(d)}
-
-    print data
+    data = {k: d[k] for d in [request.form, request.args] for k in six.iterkeys(d or {})}
 
     # Validate query data first
     error_uri = provider.check_authorization_details_from_query_data(data)
@@ -51,7 +49,7 @@ def authorization_code():
 @app.route("/v1/oauth2/token", methods=["POST"])
 def token():
     # Get a dict of POSTed form data
-    data = {k: d[k] for d in [request.json, request.form] for k in six.iterkeys(d)}
+    data = {k: d[k] for d in [request.json, request.form, request.args] for k in six.iterkeys(d or {})}
 
     # This is the important line
     credentials = provider.get_token_from_post_data(data)
