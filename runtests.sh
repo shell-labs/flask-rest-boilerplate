@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/bin/sh
 
 # Run all tests under the tests folder
-python -m unittest tests
+/usr/bin/env python -m unittest tests
