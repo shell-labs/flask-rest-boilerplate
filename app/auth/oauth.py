@@ -326,7 +326,7 @@ class OAuth2Provider:
         except TypeError as e:
             self.logger.exception(e)
             raise OAuth2Exception('invalid_request')
-        except Exception as e:
+        except StandardError as e:
             self.logger.exception(e)
             raise OAuth2Exception('server_error')
 
