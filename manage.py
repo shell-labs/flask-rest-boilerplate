@@ -162,14 +162,14 @@ def admin(email):
         sys.stdout.write("User '%s' already exists " % email)
 
     if not Grant.check_grant(user, Roles.ADMIN):
-        if query_yes_no(", are you sure you want to grant admin rights?" % email, default="no"):
+        if query_yes_no(", are you sure you want to grant admin rights?", default="no"):
             db.session.add(Grant(user=user, role=Roles.ADMIN))
             db.session.commit()
             return "User with email '%s' is now an administrator" % email
         else:
             return "Command cancelled"
 
-    print("and is an administrator")
+    print("and is an administrator.")
 
 
 @NewCommand.command
