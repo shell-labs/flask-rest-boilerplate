@@ -5,7 +5,13 @@ import calendar
 import uuid as _uuid
 import binascii
 import urllib
-import urlparse
+
+try:
+    # Python 3
+    import urllib.parse as urlparse
+except:
+    # Python 2.7
+    import urlparse
 
 from datetime import datetime, timedelta
 from collections import OrderedDict
