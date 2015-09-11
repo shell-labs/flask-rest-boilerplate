@@ -1,5 +1,7 @@
-from base import BaseTestCase
+from __future__ import absolute_import
+from __future__ import unicode_literals
 
+from .base import BaseTestCase
 
 class OAuthTestCase(BaseTestCase):
     __test__ = True

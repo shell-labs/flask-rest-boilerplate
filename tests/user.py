@@ -1,4 +1,7 @@
-from base import BaseTestCase
+from __future__ import absolute_import
+from __future__ import unicode_literals
+
+from .base import BaseTestCase
 from flask import json
 
 from app.restful import Unauthorized
