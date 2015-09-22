@@ -326,7 +326,9 @@ class OAuth2Provider:
         except TypeError as e:
             self.logger.exception(e)
             raise OAuth2Exception('invalid_request')
-        except StandardError as e:
+        except OAuth2Exception as e:
+            raise e
+        except Exception as e:
             self.logger.exception(e)
             raise OAuth2Exception('server_error')
 
@@ -360,8 +362,10 @@ class OAuth2Provider:
                 return self._build_error_uri(u, err, as_fragment=is_token)
             else:
                 raise OAuth2Exception(err)
-        except StandardError as exc:
-            self.logger.exception(exc)
+        except OAuth2Exception as e:
+            raise e
+        except Exception as e:
+            self.logger.exception(e)
 
             # Catch all other server errors
             err = 'server_error'
@@ -397,8 +401,10 @@ class OAuth2Provider:
                 return self._build_error_uri(u, err)
             else:
                 raise OAuth2Exception(err)
-        except StandardError as exc:
-            self.logger.exception(exc)
+        except OAuth2Exception as e:
+            raise e
+        except Exception as e:
+            self.logger.exception(e)
 
             # Catch all other server errors
             err = 'server_error'
