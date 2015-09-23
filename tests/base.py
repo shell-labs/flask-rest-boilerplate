@@ -47,7 +47,8 @@ class BaseTestCase(unittest.TestCase):
         db.create_all()
 
         # Initialize the request context
-        app.test_request_context().push()
+        self.context = app.test_request_context()
+        self.context.push()
 
         # load data
         if (populate):
@@ -98,6 +99,7 @@ class BaseTestCase(unittest.TestCase):
 
     def tearDown(self):
         db.drop_all(bind=None)
+        self.context.pop()
 
     def login(self, client_id, username, password):
         """Login using OAUTH 2.0 password grant"""

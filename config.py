@@ -33,6 +33,7 @@ class DevelopmentConfig(Config):
 
 
 class TestingConfig(Config):
+    PRESERVE_CONTEXT_ON_EXCEPTION = False
     TESTING = True
     DEBUG = True
 
