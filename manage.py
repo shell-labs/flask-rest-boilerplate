@@ -20,9 +20,14 @@ manager.add_command('db', MigrateCommand)
 NewCommand = Manager(usage='Create resources on database')
 manager.add_command('new', NewCommand)
 
+try:
+    # Rename the raw_input function to input() for python3 compatibility
+    input = raw_input
+except NameError:
+    pass
 
 def query_yes_no(question, default="yes"):
-    """Ask a yes/no question via raw_input() and return their answer.
+    """Ask a yes/no question via input() and return their answer.
 
     "question" is a string that is presented to the user.
     "default" is the presumed answer if the user just hits <Enter>.
@@ -46,7 +51,7 @@ def query_yes_no(question, default="yes"):
 
     while True:
         sys.stdout.write(question + prompt)
-        choice = raw_input().lower()
+        choice = input().lower()
         if default is not None and choice == '':
             return valid[default]
         elif choice in valid:
@@ -57,7 +62,7 @@ def query_yes_no(question, default="yes"):
 
 
 def query(question, default=None, required=True):
-    """Request a data prompt through raw_input() and return the answer.
+    """Request a data prompt through input() and return the answer.
     If default is set and the user does not enter an input, then default
     value will be used for the answer"""
 
@@ -67,7 +72,7 @@ def query(question, default=None, required=True):
 
     while True:
         sys.stdout.write(question + prompt)
-        response = raw_input()
+        response = input()
 
         if response:
             return response
