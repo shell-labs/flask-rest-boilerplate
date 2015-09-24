@@ -20,6 +20,8 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(32), default=uuid, nullable=False, index=True, unique=True)
     _password = db.Column('password', db.String(128))
 
+    details = db.relationship('UserDetails', backref='user', lazy='joined', uselist=False)
+
     def __init__(self, password=None, **kwargs):
         super(User, self).__init__(**kwargs)
         self.password = password
@@ -93,4 +95,3 @@ class UserDetails(db.Model):
     gender = db.Column(ChoiceType(Genders))
 
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    user = db.relationship('User', backref=db.backref('details', lazy='joined', uselist=False))
