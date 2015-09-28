@@ -8,3 +8,4 @@ restless
 passlib
 flask-login
 flask-wtf
+flask-oauthlib
