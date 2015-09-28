@@ -4,7 +4,7 @@ import types
 import re
 import functools
 
-from flask import make_response, json
+from flask import make_response, json, request
 from restless.fl import FlaskResource
 from restless.preparers import FieldsPreparer
 from restless.exceptions import BadRequest, NotFound, Unauthorized
@@ -62,37 +62,23 @@ class Resource(FlaskResource):
         if hasattr(callback, 'public') and callback.public:
             return True
 
-        roles = []
-        if hasattr(callback, 'roles'):
-            roles = callback.roles
+        scopes = []
+        if hasattr(callback, 'scopes'):
+            scopes = callback.scopes
 
-        reg = re.compile('^Bearer *([^ ]+) *$')
+        valid, req = self.auth.verify_request(scopes)
 
-        authorization = self.request.headers.get('Authorization')
-        if not authorization:
-            # TODO: return bad request or unauthorized here?
+        if hasattr(callback, 'admin') and \
+           callback.admin and \
+           not req.user.is_admin:
             return False
 
-        access_token = reg.findall(authorization)
-        if not access_token:
-            # TODO: return bad request or unauthorized here?
-            return False
-        access_token = access_token[0]
+        if valid:
+            request.oauth = req
+            request.user = req.user
+            request.client = req.client
 
-        # Get the user
-        user, client = self.auth.from_access_token(access_token)
-
-        if user is None:
-            return False
-
-        # Check user roles
-        if not self.auth.validate_user_roles(user, roles):
-            return False
-
-        self.user = user
-        self.client = client
-
-        return True
+        return valid
 
     def handle(self, endpoint, *args, **kwargs):
         '''
@@ -190,6 +176,22 @@ class Api:
         the user to be authenticated
         """
         view.public = True
+        return view
+
+    def admin(self, view):
+        """Define the class method as public.
+
+        Otherwise, if auth is defined all methods require
+        the user to be authenticated
+        """
+        view.admin = True
+        return view
+
+    def scopes(self, *scopes):
+        def view(fn):
+            fn.scopes = scopes
+            return fn
+
         return view
 
     def grant(self, *roles):
