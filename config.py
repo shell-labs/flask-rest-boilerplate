@@ -6,7 +6,10 @@ class Config(object):
     DEBUG = False
     TESTING = False
     SQLALCHEMY_DATABASE_URI = 'sqlite://'
-    TOKEN_EXPIRATION_TIME = 3600
+
+    # Flask OAuthLib configuration
+    OAUTH2_PROVIDER_ERROR_URI = '/v1/oauth2/errors'
+    OAUTH2_PROVIDER_TOKEN_EXPIRES_IN = 3600
 
     # Define the application directory
     import os
