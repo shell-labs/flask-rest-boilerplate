@@ -41,7 +41,6 @@ def save_grant(client_id, code, request, *args, **kwargs):
 def load_token(access_token=None, refresh_token=None):
     if access_token:
         tok = Token.query.filter_by(access_token=access_token).first()
-        print(str(tok.scopes))
         return tok
     elif refresh_token:
         return Token.query.filter_by(refresh_token=refresh_token).first()
