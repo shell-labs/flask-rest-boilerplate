@@ -45,7 +45,8 @@ class UserTestCase(BaseTestCase):
     def test_user_detail(self):
         status, token = self.login(self.client.get('id'),
                                    self.user.get('email'),
-                                   self.user.get('password'))
+                                   self.user.get('password'),
+                                   scopes=['user'])
         assert token.get('access_token', None)
 
         rv = self.get('/v1/user/%s/' % self.user.get('id'), token.get('access_token'))
@@ -73,7 +74,8 @@ class UserTestCase(BaseTestCase):
     def test_user_creation_by_admin(self):
         status, token = self.login(self.client.get('id'),
                                    self.admin.get('email'),
-                                   self.admin.get('password'))
+                                   self.admin.get('password'),
+                                   scopes=['user'])
         assert token.get('access_token', None)
 
         rv = self.post('/v1/user/', token.get('access_token'),
@@ -89,7 +91,8 @@ class UserTestCase(BaseTestCase):
     def test_user_creation_by_owner(self):
         status, token = self.login(self.client.get('id'),
                                    self.owner.get('email'),
-                                   self.owner.get('password'))
+                                   self.owner.get('password'),
+                                   scopes=['user'])
         assert token.get('access_token', None)
 
         try:
@@ -104,7 +107,8 @@ class UserTestCase(BaseTestCase):
     def test_user_update(self):
         status, token = self.login(self.client.get('id'),
                                    self.user.get('email'),
-                                   self.user.get('password'))
+                                   self.user.get('password'),
+                                   scopes=['user'])
         assert token.get('access_token', None)
 
         # Get the user data
@@ -127,3 +131,17 @@ class UserTestCase(BaseTestCase):
                                    self.user.get('email'),
                                    'abc')
         assert status == 200
+
+    def test_user_detail_with_wrong_scope(self):
+        status, token = self.login(self.client.get('id'),
+                                   self.user.get('email'),
+                                   self.user.get('password'),
+                                   scopes=['other'])
+        assert token.get('access_token', None)
+
+        # Get the user data
+        try:
+            rv = self.get('v1/user/%s/' % self.user.get('id'), token.get('access_token'))
+            assert False
+        except Unauthorized:
+            assert True

@@ -3,12 +3,13 @@ from __future__ import unicode_literals
 
 from .base import BaseTestCase
 
+
 class OAuthTestCase(BaseTestCase):
     __test__ = True
 
     def test_oauth_login(self):
         """Test login using oauth request"""
-        status, data = self.login(self.client.get('id'), self.user.get('email'), self.user.get('password'))
+        status, data = self.login(self.client.get('id'), self.user.get('email'), self.user.get('password'), scopes=['user'])
 
         # A 2xx response was given
         assert status >= 200 and status < 300
@@ -28,7 +29,7 @@ class OAuthTestCase(BaseTestCase):
         status, data = self.login(self.client.get('id'), self.user.get('email'), "this is not the password")
 
         # A 4xx response was given
-        assert status == 400
+        assert status == 401
 
         # Data is a valid json error
         assert data.get('error', None)

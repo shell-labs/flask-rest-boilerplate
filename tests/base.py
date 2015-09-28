@@ -3,12 +3,16 @@ from __future__ import unicode_literals
 
 from flask import json
 from app import app, db
-from app.auth.oauth import GrantTypes
-from app.user.models import User, UserDetails, Grant
-from app.auth.models import Application, Client
-from app.constants import Roles
+from app.auth.models import GrantTypes, User, UserDetails, Application, Client
 
 import unittest
+
+try:
+    # Python 3
+    import urllib.parse as urllib
+except:
+    # Python 2.7
+    import urllib
 
 
 class BaseTestCase(unittest.TestCase):
@@ -62,16 +66,10 @@ class BaseTestCase(unittest.TestCase):
         user.details = UserDetails(name=self.user.get('name'), user=user)
         db.session.add(user)
 
-        # Give the test user, basic user rights
-        db.session.add(Grant(user=user, role=Roles.USER))
-
         # Create administrator
-        admin = User(email=self.admin.get('email'), password=self.admin.get('password'))
+        admin = User(email=self.admin.get('email'), password=self.admin.get('password'), is_admin=True)
         admin.details = UserDetails(name=self.admin.get('name'), user=admin)
         db.session.add(admin)
-
-        # Give administrative role to the administrator
-        db.session.add(Grant(user=admin, role=Roles.ADMIN))
 
         # Create application owner
         owner = User(email=self.owner.get('email'), password=self.owner.get('password'))
@@ -81,12 +79,11 @@ class BaseTestCase(unittest.TestCase):
         app = Application(owner=owner, name=self.application.get('name'))
         db.session.add(app)
 
-        # Give the user application administration rights
-        db.session.add(Grant(user=owner, role=Roles.APP))
-
         # Create a client
         client = Client(app=app, name=self.client.get('name'),
-                        allowed_grant_types=[GrantTypes.PASSWORD, GrantTypes.REFRESH_TOKEN])
+                        allowed_grant_types=[GrantTypes.PASSWORD, GrantTypes.REFRESH_TOKEN],
+                        _default_scopes='user other',
+                        _redirect_uris='http://localhost')
         db.session.add(client)
         db.session.commit()
 
@@ -95,21 +92,24 @@ class BaseTestCase(unittest.TestCase):
         self.admin['id'] = admin.username
         self.owner['id'] = owner.username
         self.application['id'] = app.id
-        self.client['id'] = client.id
+        self.client['id'] = client.client_id
 
     def tearDown(self):
         db.drop_all(bind=None)
         self.context.pop()
 
-    def login(self, client_id, username, password):
+    def login(self, client_id, username, password, scopes=[]):
         """Login using OAUTH 2.0 password grant"""
 
-        rv = self.app.post('/v1/oauth2/token', data=json.dumps(dict(
+        data = dict(
             client_id=client_id,
             username=username,
             password=password,
             grant_type='password'
-        )), follow_redirects=True, content_type='application/json')
+        )
+        if len(scopes) > 0:
+            data['scope'] = ' '.join(scopes)
+        rv = self.app.post('/v1/oauth2/token?' + urllib.urlencode(data), follow_redirects=True)
 
         if rv.status_code >= 200 and rv.status_code < 300:
             return rv.status_code, json.loads(rv.data)
