@@ -17,8 +17,11 @@ app.config.from_object('config.default')
 db = SQLAlchemy(app)
 
 # Authentication
-from .auth import AuthProvider
-auth = AuthProvider(app)
+# from .auth import AuthProvider
+# auth = AuthProvider(app)
+
+from flask_oauthlib.provider import OAuth2Provider
+oauth = OAuth2Provider(app)
 
 # CSRF protection for forms
 from flask.ext.wtf.csrf import CsrfProtect
@@ -28,7 +31,7 @@ csrf.init_app(app)
 
 # Login Manager
 from flask.ext.login import LoginManager
-from .user.models import User
+from .auth.models import User
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -43,7 +46,7 @@ def load_user(userid):
 
 # Rest API
 from .restful import Api
-api = Api(app, auth)
+api = Api(app, oauth)
 
 # Configure logging
 import logging
@@ -88,4 +91,3 @@ def not_found(error):
 
 # Import modules
 from app.auth import views as auth_views
-from app.user import views as user_views
