@@ -15,6 +15,7 @@ Dependencies
 * Flask Migrate
 * [SQLAlchemy](http://www.sqlalchemy.org/)
 * Flask SQLAlchemy
+* [Flask OAuthLib](https://github.com/lepture/flask-oauthlib)
 
 For all requirements see the file [requirements.txt](requirements.txt)
 
