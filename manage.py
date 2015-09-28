@@ -3,10 +3,7 @@ from __future__ import unicode_literals
 from flask.ext.script import Manager
 from flask.ext.migrate import Migrate, MigrateCommand
 from app import app, db
-from app.user.models import User, Grant
-from app.auth.models import Application, Client
-from app.auth.oauth import GrantTypes
-from app.constants import Roles
+from app.auth.models import User, Grant, Application, Client, GrantTypes
 from six import string_types
 
 import sys
@@ -25,6 +22,7 @@ try:
     input = raw_input
 except NameError:
     pass
+
 
 def query_yes_no(question, default="yes"):
     """Ask a yes/no question via input() and return their answer.
