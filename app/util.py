@@ -4,13 +4,14 @@ import os
 import calendar
 import uuid as _uuid
 import binascii
-import urllib
 
 try:
     # Python 3
     import urllib.parse as urlparse
+    import urllib.parse as urllib
 except:
     # Python 2.7
+    import urllib
     import urlparse
 
 from datetime import datetime, timedelta
