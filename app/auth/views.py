@@ -1,73 +1,237 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
-from flask import request, jsonify, abort, redirect, flash, render_template
-from app import app, api, auth as provider, db
-from .models import Application, Client
+from app import app, db, oauth, csrf, api
+from flask import request
+from flask.ext.login import current_user, login_user, login_required, logout_user
+from app.util import is_safe_url
+from app.constants import Genders
+from .forms import LoginForm
+from .models import Client, Grant, User, Token, UserDetails
+from datetime import datetime, timedelta
 
-from flask.ext.login import login_required
 
-from .oauth import OAuth2Exception
-from .forms import AuthorizationForm
-import six
+@oauth.clientgetter
+def load_client(client_id):
+    return Client.query.filter_by(client_id=client_id).first()
 
 
-# Authorization Code
-# Returns a redirect header on success
-# Based on http://tech.shift.com/post/39516330935/implementing-a-python-oauth-2-0-provider-part-1
-@app.route("/v1/oauth2/auth", methods=["GET", "POST"])
-@login_required
-def authorization_code():
-    # Get a dict of POSTed form data
-    data = {k: d[k] for d in [request.form, request.args] for k in six.iterkeys(d or {})}
+@oauth.grantgetter
+def load_grant(client_id, code):
+    return Grant.query.filter_by(client_id=client_id, code=code).first()
 
-    # Validate query data first
-    error_uri = provider.check_authorization_details_from_query_data(data)
 
-    # If we have an error in the request, send response immediately
-    if error_uri is not None:
-        return redirect(error_uri, 302)
+@oauth.grantsetter
+def save_grant(client_id, code, request, *args, **kwargs):
+    # decide the expires time yourself
+    expires = datetime.utcnow() + timedelta(seconds=100)
+    grant = Grant(
+        client_id=client_id,
+        code=code['code'],
+        redirect_uri=request.redirect_uri,
+        _scopes=' '.join(request.scopes),
+        user=current_user,
+        expires=expires
+    )
+    db.session.add(grant)
+    db.session.commit()
+    return grant
 
-    # Request authorization from client
-    form = AuthorizationForm()
+
+@oauth.tokengetter
+def load_token(access_token=None, refresh_token=None):
+    if access_token:
+        tok = Token.query.filter_by(access_token=access_token).first()
+        print(str(tok.scopes))
+        return tok
+    elif refresh_token:
+        return Token.query.filter_by(refresh_token=refresh_token).first()
+
+
+@oauth.tokensetter
+def save_token(token, request, *args, **kwargs):
+    toks = Token.query.filter_by(client_id=request.client.client_id,
+                                 user_id=request.user.id)
+    # make sure that every client has only one token connected to a user
+    for t in toks:
+        db.session.delete(t)
+
+    expires_in = token.get('expires_in')
+    expires = datetime.utcnow() + timedelta(seconds=expires_in)
+
+    tok = Token(
+        access_token=token['access_token'],
+        refresh_token=token['refresh_token'],
+        token_type=token['token_type'],
+        _scopes=token['scope'],
+        expires=expires,
+        client_id=request.client.client_id,
+        user_id=request.user.id,
+    )
+    db.session.add(tok)
+    db.session.commit()
+    return tok
+
+
+@oauth.usergetter
+def get_user(username, password, *args, **kwargs):
+    user, authenticated = User.authenticate(username, password)
+    if authenticated:
+        return user
+    return None
+
+
+@app.route('/', endpoint='index')
+def index():
+    return "IT WORKS!!"
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    # Protect with csrf
+    csrf.protect()
+
+    # Here we use a class of some kind to represent and validate our
+    # client-side form data. For example, WTForms is a library that will
+    # handle this for us.
+    form = LoginForm()
     if form.validate_on_submit():
-        data['access_granted'] = form.yes.data
+        # Login and validate the user.
+        login_user(form.user)
 
-        # This is the important line
-        redirect_uri = provider.get_authorization_uri(**data)
+        flask.flash('Logged in successfully.')
 
-        # Redirect to the return URI (it can be an error or a success response)
-        return redirect(redirect_uri, 302)
+        next = flask.request.args.get('next')
+        if not is_safe_url(next):
+            return flask.abort(400)
 
-    app, owner = provider.get_client_details(data.get('client_id'))
+        return flask.redirect(next or flask.url_for('index'))
 
-    return render_template('authorize.html', form=form, app=app, owner=owner)
-
-
-# Token exchange
-# Returns JSON token information on success
-# Based on http://tech.shift.com/post/39516330935/implementing-a-python-oauth-2-0-provider-part-1
-@app.route("/v1/oauth2/token", methods=["POST"])
-def token():
-    # Get a dict of POSTed form data
-    data = {k: d[k] for d in [request.json, request.form, request.args] for k in six.iterkeys(d or {})}
-
-    # This is the important line
-    credentials = provider.get_token_from_post_data(data)
-
-    # Convert the response to a json response
-    response = jsonify(credentials)
-    response.headers['Content-Type'] = 'application/json;charset=UTF-8'
-    response.headers['Cache-Control'] = 'no-store'
-    response.headers['Pragma'] = 'no-cache'
-
-    return response
+    return flask.render_template('login.html', form=form)
 
 
-@app.errorhandler(OAuth2Exception)
-def oauth2_error(error):
-    response = jsonify(error.to_dict())
-    response.headers['Content-Type'] = 'application/json;charset=UTF-8'
-    response.headers['Cache-Control'] = 'no-store'
-    response.headers['Pragma'] = 'no-cache'
-    response.status_code = error.status_code
-    return response
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    next = flask.request.args.get('next')
+    if not is_safe_url(next):
+        return flask.abort(400)
+
+    return flask.redirect(next or flask.url_for('index'))
+
+
+@app.route('/v1/oauth2/auth', methods=['GET', 'POST'])
+@login_required
+@oauth.authorize_handler
+def authorize(*args, **kwargs):
+    if request.method == 'GET':
+        client_id = kwargs.get('client_id')
+        client = Client.query.filter_by(client_id=client_id).first()
+        kwargs['app'] = client.app
+        kwargs['owner'] = client.user
+        return render_template('authorize.html', **kwargs)
+
+    confirm = request.form.get('confirm', 'no')
+    return confirm == 'yes'
+
+
+@app.route('/v1/oauth2/token', methods=['POST'])
+@oauth.token_handler
+def access_token():
+    return None
+
+
+@app.route('/v1/oauth2/revoke', methods=['POST'])
+@oauth.revoke_handler
+def revoke_token():
+    pass
+
+
+@api.resource('/v1/user/')
+class UserResource:
+    aliases = {
+        'id': 'username',
+        'created': 'created',
+        'modified': 'details.modified',
+        'email': 'email',
+        'name': 'details.name',
+        'url': 'details.url',
+        'bio': 'details.bio',
+        'born': 'details.born',
+        'gender': 'details.gender',
+    }
+
+    @api.admin
+    def list(self):
+        """Lists all users"""
+        return User.query.all()
+
+    # /v1/user/<pk>/
+    @api.scopes('user')
+    def detail(self, pk):
+        if request.user.is_admin:
+            return User.query.filter(User.username == pk).first()
+
+        if request.user.get_id() == pk:
+            return request.user
+
+        raise Unauthorized('Only admins and data owners can view user data')
+
+    @api.admin
+    def create(self):
+        # Check
+        for s in ['email', 'password']:
+            if not self.data.get(s, None):
+                raise BadRequest("Missing required parameter %s" % s)
+
+        user = User(
+            email=self.data.get('email'),
+            password=self.data.get('password')
+        )
+
+        # Always create details
+        gender = self.data.get('gender', None)
+        if gender and gender not in Genders:
+            raise BadRequest(("Gender must be one of (" + ','.join(["'%s'"] * len(Genders)) + ")") % tuple(Genders))
+
+        user.details = UserDetails(
+            name=self.data.get('name', None),
+            url=self.data.get('url', None),
+            bio=self.data.get('bio', None),
+            born=self.data.get('born', None),
+            gender=gender,
+            user=user
+        )
+        db.session.add(user)
+        db.session.commit()
+
+        return user
+
+    @api.scopes('user')
+    def update(self, pk):
+        user = User.query.filter(User.username == pk).first()
+        if not user:
+            raise NotFound("Cannot update non existing object")
+
+        if not request.user.is_admin and request.user.id != user.id:
+            raise Unauthorized('Only administrators and data owners can update user data')
+
+        # Can only update password
+        user.password = self.data.get('password', user.password)
+
+        gender = self.data.get('gender', user.details.gender)
+        if gender and gender not in Genders:
+            raise BadRequest(("Gender must be one of (" + ','.join(["'%s'"] * len(Genders)) + ")") % tuple(Genders))
+
+        # Update user details
+        user.details.name = self.data.get('name', user.details.name)
+        user.details.url = self.data.get('url', user.details.url)
+        user.details.bio = self.data.get('bio', user.details.url)
+        user.details.born = self.data.get('born', user.details.born)
+        user.details.gender = gender
+        db.session.add(user.details)
+
+        db.session.add(user)
+        db.session.commit()
+
+        return user
