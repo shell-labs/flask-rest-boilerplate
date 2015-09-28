@@ -3,8 +3,8 @@ from __future__ import unicode_literals
 from app import db
 from app.util import now, enum, uuid, secret
 from app.sql import ChoiceType, StringListType, UUID
+from app.constants import Genders, GrantTypes, ResponseTypes
 
-from .oauth import GrantTypes
 from flask.ext.login import UserMixin
 from passlib.hash import sha256_crypt
 
@@ -102,70 +102,126 @@ class Application(db.Model):
 class Client(db.Model):
     __tablename__ = 'clients'
 
-    id = db.Column(UUID, primary_key=True, default=uuid)
+    client_id = db.Column('id', UUID, primary_key=True, default=uuid)
+    client_secret = db.Column('secret', db.String(16), unique=True, index=True,
+                              nullable=False, default=secret)
+
     created = db.Column(db.DateTime, default=now)
     modified = db.Column(db.DateTime, default=now, onupdate=now)
-    secret = db.Column('secret', db.String(16), unique=True, default=secret)
 
-    name = db.Column(db.String(64))
-    redirect_uri = db.Column(db.String(256))
+    # Application
+    app_id = db.Column(db.Integer, db.ForeignKey('applications.id'), nullable=False)
+    app = db.relationship('Application')
+
+    # human readable name, not required
+    name = db.Column(db.String(40))
+
+    # public or confidential
+    is_confidential = db.Column(db.Boolean)
+
+    _redirect_uris = db.Column('redirect_uris', db.Text)
+    _default_scopes = db.Column('default_scopes', db.Text)
 
     # The list of allowed grant types for this client
     allowed_grant_types = db.Column(StringListType(GrantTypes), default=[GrantTypes.REFRESH_TOKEN])
+    allowed_response_types = db.Column(StringListType(ResponseTypes), default=[ResponseTypes.TOKEN])
 
-    # Application
-    app_id = db.Column(db.Integer, db.ForeignKey('applications.id'))
-    app = db.relationship('Application')
+    # OAuthLib also supports
+    # validate_scopes: A function to validate scopes
+
+    # required if you need to support client credential
+    @property
+    def user(self):
+        return self.app.owner
+
+    @property
+    def client_type(self):
+        if self.is_confidential:
+            return 'confidential'
+        return 'public'
+
+    @property
+    def redirect_uris(self):
+        if self._redirect_uris:
+            return self._redirect_uris.split()
+        return []
+
+    @property
+    def default_redirect_uri(self):
+        return self.redirect_uris[0]
+
+    @property
+    def default_scopes(self):
+        if self._default_scopes:
+            return self._default_scopes.split()
+        return []
+
+
+class Grant(db.Model):
+    __tablename__ = 'grants'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    user_id = db.Column(
+        db.Integer, db.ForeignKey('users.id', ondelete='CASCADE')
+    )
+    user = db.relationship('User')
+
+    client_id = db.Column(
+        db.String(40), db.ForeignKey('clients.id'),
+        nullable=False,
+    )
+    client = db.relationship('Client')
+
+    code = db.Column(db.String(255), index=True, nullable=False)
+
+    redirect_uri = db.Column(db.String(255))
+    expires = db.Column(db.DateTime)
+
+    _scopes = db.Column('scopes', db.Text)
+
+    def delete(self):
+        db.session.delete(self)
+        db.session.commit()
+        return self
+
+    @property
+    def scopes(self):
+        if self._scopes:
+            return self._scopes.split()
+        return []
 
 
 class Token(db.Model):
     __tablename__ = 'tokens'
 
     id = db.Column(db.Integer, primary_key=True)
-    created = db.Column(db.DateTime, default=now)
-    modified = db.Column(db.DateTime, default=now, onupdate=now)
-
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    client_id = db.Column(UUID, db.ForeignKey('clients.id'), nullable=False)
-
-    token_type = db.Column(db.String(20), nullable=False)
-    access_token = db.Column(db.String(40), nullable=False, index=True)
-    refresh_token = db.Column(db.String(40), index=True)
-    _expires_in = db.Column('expires_in', db.Integer, nullable=False)
-
-    user = db.relationship('User')
+    client_id = db.Column(
+        db.String(40), db.ForeignKey('clients.id'),
+        nullable=False,
+    )
     client = db.relationship('Client')
 
-    def __init__(self, expires_in=3600, **kwargs):
-        super(Token, self).__init__(**kwargs)
-        self.expires_in = expires_in
+    user_id = db.Column(
+        db.Integer, db.ForeignKey('users.id')
+    )
+    user = db.relationship('User')
+
+    # currently only bearer is supported
+    token_type = db.Column(db.String(40))
+
+    access_token = db.Column(db.String(255), unique=True)
+    refresh_token = db.Column(db.String(255), unique=True)
+    expires = db.Column(db.DateTime)
+    _scopes = db.Column('scopes', db.Text)
+
+    def delete(self):
+        db.session.delete(self)
+        db.session.commit()
+        return self
 
     @property
-    def expires_in(self):
-        """Return time to expiration, calculated by
-        substracting the elapsed time since the creation of the token
-        by the database value of expires_in
-        """
-        if self.created:
-            delta = (timedelta(seconds=self._expires_in) - (now() - self.created)).seconds
-            return delta if delta > 0 else 0
-
-        return self._expires_in
-
-    @expires_in.setter
-    def expires_in(self, value):
-        self._expires_in = value
-
-    @property
-    def expires(self):
-        """Return the date of expiration according to the
-        creation date of the token, or None if there is
-        no creation date"""
-        if self.created:
-            return self.created + timedelta(seconds=self._expires_in)
-        return None
-
-    @property
-    def expired(self):
-        """Return true if the token is expired"""
-        return now() > self.created + timedelta(seconds=self._expires_in)
+    def scopes(self):
+        if self._scopes:
+            return self._scopes.split()
+        return []
