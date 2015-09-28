@@ -3,7 +3,8 @@ from __future__ import unicode_literals
 from .util import enum
 
 Genders = enum(M='Male', F='Female')
-Roles = enum(USER='User', ADMIN='Administrator', APP='Application Owner')
+GrantTypes = enum(PASSWORD='password', REFRESH_TOKEN='refresh_token')
+ResponseTypes = enum(CODE='code', TOKEN='token')
 
 NOT_MODIFIED = 304
 PRECONDITION_REQUIRED = 428
