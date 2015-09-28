@@ -1,5 +1,6 @@
 <form method="POST">
     {{ form.csrf_token }}
-    The app {{app}} by {{owner}} would like to access account. Give {{app}} access?
-    {{ form.yes }} {{ form.no }}
+    {{app}} by {{owner}} would like to access account. Give {{app}} access?
+    <input type="submit" name="confirm" value="yes" />
+    <input type="submit" name="confirm" value="no" />
 </form>
