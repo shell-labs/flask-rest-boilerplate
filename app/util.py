@@ -36,7 +36,7 @@ def now(as_timestamp=False, in_millis=False):
 
 
 def secret(size=16):
-    return str(binascii.hexlify(os.urandom(size // 2)))
+    return str(binascii.hexlify(os.urandom(size // 2)).decode())
 
 
 def uuid():
