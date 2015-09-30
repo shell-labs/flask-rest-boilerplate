@@ -3,7 +3,8 @@ from __future__ import unicode_literals
 from flask.ext.script import Manager
 from flask.ext.migrate import Migrate, MigrateCommand
 from app import app, db
-from app.auth.models import User, Grant, Application, Client, GrantTypes
+from app.auth.models import User, Grant, Application, Client
+from app.constants import GrantTypes, ResponseTypes
 from six import string_types
 
 import sys
@@ -189,11 +190,11 @@ def application(email):
 
     application.name = query('Application name', default=application.name)
 
-    description = query('Describe your application (200 chars max)', default=application.description, required=False)
+    description = query('Describe the application (200 chars max)', default=application.description, required=False)
     description = (description[:200]) if description and len(description) > 200 else description
     application.description = description
 
-    application.url = query('Give a URL for your application', default=application.url)
+    application.url = query('Give a URL for the application', default=application.url)
 
     application.owner = user
 
@@ -232,15 +233,19 @@ def client(app_id=None, client_id=None):
         application = client.app
 
     client.name = query('Provide client name for application \'%s\'' % application.name, default=client.name)
-    client.redirect_uri = query('Redirect URI', default=client.redirect_uri)
+
+    client._redirect_uris = query('Redirect URI', default=client._redirect_uris)
+    client._default_scopes = query('Client scopes (separated by space)', default=client._default_scopes)
     client.allowed_grant_types = query_multiple('Select grant types', GrantTypes, default=client.allowed_grant_types)
+
+    client.allowed_response_types = query_multiple('Select response types', ResponseTypes, default=client.allowed_response_types)
 
     client.app = application
 
     db.session.add(client)
     db.session.commit()
 
-    return "The client with id %s has been %s" % (client.id, operation)
+    return "The client with id %s and secret %s has been %s" % (client.id, client.secret, operation)
 
 
 @manager.command
