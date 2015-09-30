@@ -129,6 +129,14 @@ class Client(db.Model):
     # OAuthLib also supports
     # validate_scopes: A function to validate scopes
 
+    @property
+    def id(self):
+        return self.client_id
+
+    @property
+    def secret(self):
+        return self.client_secret
+
     # required if you need to support client credential
     @property
     def user(self):
